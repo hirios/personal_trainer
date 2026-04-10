@@ -47,7 +47,7 @@ const Auth = (() => {
     // Tenta invalidar o token no backend (best-effort, não bloqueia o logout local)
     if (refreshToken) {
       try {
-        await fetch(`${window.API_BASE_URL || "http://localhost:5000"}/api/auth/logout`, {
+        await fetch(`${window.API_BASE_URL || window.location.origin}/api/auth/logout`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

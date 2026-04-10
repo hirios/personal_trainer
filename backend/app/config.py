@@ -41,7 +41,7 @@ class BaseConfig:
 
     # Flask-Limiter — usa memória se RATELIMIT_STORAGE_URL não estiver definido
     RATELIMIT_STORAGE_URL = os.environ.get("RATELIMIT_STORAGE_URL", "memory://")
-    RATELIMIT_DEFAULT = "200 per day;50 per hour"
+    RATELIMIT_DEFAULT = "1000 per day;200 per hour"
     RATELIMIT_HEADERS_ENABLED = True
 
     # E-mail
@@ -70,8 +70,8 @@ class BaseConfig:
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
     # URL base do frontend — usada para montar links de acesso do aluno
-    # Em dev aponta para o Live Server; em produção aponta para o domínio real
-    FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://127.0.0.1:6555")
+    # Aponta para o próprio Flask; em produção use o domínio real via variável de ambiente
+    FRONTEND_BASE_URL = os.environ.get("FRONTEND_BASE_URL", "http://localhost:5000")
 
 
 class DevelopmentConfig(BaseConfig):
@@ -79,7 +79,7 @@ class DevelopmentConfig(BaseConfig):
 
     DEBUG = True
     TESTING = False
-    RATELIMIT_ENABLED = True
+    RATELIMIT_ENABLED = False  # Desativado em dev para não atrapalhar testes
 
     # Em desenvolvimento aceita qualquer origem — evita problemas de CORS com Live Server,
     # Vite, extensões do VS Code, etc. Em produção use a lista explícita em CORS_ORIGINS.

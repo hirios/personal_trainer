@@ -275,6 +275,14 @@
     .delta-up   { color: #22C55E; font-weight: 700; }
     .delta-down { color: #EF4444; font-weight: 700; }
   </style>
+
+  <!-- Utilitários no <head>: o FOUC-shield do layout.js executa antes do primeiro paint -->
+  <script>window.API_BASE_URL = window.location.origin;</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/modal.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
 </head>
 
 <body>
@@ -861,13 +869,6 @@
 
   </div>
 
-  <script>window.API_BASE_URL = "http://localhost:5000";</script>
-  <script src="/frontend/js/api.js"></script>
-  <script src="/frontend/js/auth.js"></script>
-  <script src="/frontend/js/components/toast.js"></script>
-  <script src="/frontend/js/components/modal.js"></script>
-  <script src="/frontend/js/components/layout.js"></script>
-
   <script>
     Auth.requireAuth('trainer');
 
@@ -1240,7 +1241,8 @@
     // --- Copiar link ---
     function copyLink() {
       const url = document.getElementById('access-link-display').textContent;
-      navigator.clipboard.writeText(url).then(() => {
+
+      function onCopied() {
         document.getElementById('copy-btn').innerHTML =
           `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Copiado!`;
         setTimeout(() => {
@@ -1248,7 +1250,22 @@
             `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar`;
         }, 2000);
         Toast.success('Link copiado!');
-      });
+      }
+
+      // navigator.clipboard só funciona em HTTPS ou localhost
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(onCopied);
+      } else {
+        // Fallback para HTTP (rede local)
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+        document.body.appendChild(ta);
+        ta.focus(); ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        onCopied();
+      }
     }
 
     // --- WhatsApp ---
@@ -1874,8 +1891,10 @@
 
       const urlA = asmA.photo_urls?.[viewIdx];
       const urlB = asmB.photo_urls?.[viewIdx];
-      document.getElementById('compare-img-a').src = urlA ? base + urlA : placeholder;
-      document.getElementById('compare-img-b').src = urlB ? base + urlB : placeholder;
+      // img-b é a camada de cima (clip à esquerda) → seletor A (esquerdo)
+      // img-a é a camada de baixo (fica visível à direita) → seletor B (direito)
+      document.getElementById('compare-img-b').src = urlA ? base + urlA : placeholder;
+      document.getElementById('compare-img-a').src = urlB ? base + urlB : placeholder;
       document.getElementById('th-a').textContent = formatDate(asmA.date);
       document.getElementById('th-b').textContent = formatDate(asmB.date);
 

@@ -67,6 +67,10 @@ def _register_blueprints(app: Flask) -> None:
     from app.routes.ai import ai_bp
     from app.routes.assessments import assessments_bp
     from app.routes.uploads import uploads_bp
+    from app.routes.appointments import appointments_bp
+    from app.routes.trainer import trainer_bp
+    from app.routes.payments import payments_bp
+    from app.routes.frontend import frontend_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(students_bp)
@@ -74,6 +78,10 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(ai_bp)
     app.register_blueprint(assessments_bp)
     app.register_blueprint(uploads_bp)
+    app.register_blueprint(appointments_bp)
+    app.register_blueprint(trainer_bp)
+    app.register_blueprint(payments_bp)
+    app.register_blueprint(frontend_bp)
 
 
 def _register_error_handlers(app: Flask) -> None:

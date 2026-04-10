@@ -77,6 +77,14 @@
     .fab:hover { background: #15803D; transform: scale(1.05); }
     @media (min-width: 1024px) { .fab { display: none; } }
   </style>
+
+  <!-- Utilitários no <head>: o FOUC-shield do layout.js executa antes do primeiro paint -->
+  <script>window.API_BASE_URL = window.location.origin;</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/modal.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
 </head>
 
 <body>
@@ -160,13 +168,6 @@
           aria-label="Cadastrar novo aluno">
     <i data-lucide="plus" class="w-6 h-6"></i>
   </button>
-
-  <script>window.API_BASE_URL = "http://localhost:5000";</script>
-  <script src="/frontend/js/api.js"></script>
-  <script src="/frontend/js/auth.js"></script>
-  <script src="/frontend/js/components/toast.js"></script>
-  <script src="/frontend/js/components/modal.js"></script>
-  <script src="/frontend/js/components/layout.js"></script>
 
   <script>
     Auth.requireAuth('trainer');

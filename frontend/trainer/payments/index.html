@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Financeiro — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Utilitários no <head> para que o FOUC-shield execute antes do primeiro paint -->
+  <script>window.API_BASE_URL = window.location.origin;</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/modal.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
+
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
+    h1,h2,h3,h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    /* Cards de métricas */
+    .metric-card {
+      background: #fff;
+      border: 1px solid #F1F5F9;
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 26px; font-weight: 600;
+      line-height: 1.1; margin-top: 8px;
+    }
+    .metric-label { font-size: 12px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em; }
+    .metric-sub   { font-size: 12px; color: #94A3B8; margin-top: 4px; }
+
+    /* Badges de status */
+    .badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 100px;
+      font-size: 11px; font-weight: 600; white-space: nowrap;
+    }
+    .badge-pending  { background: #FEF9C3; color: #854D0E; }
+    .badge-paid     { background: #DCFCE7; color: #166534; }
+    .badge-overdue  { background: #FEE2E2; color: #991B1B; }
+    .badge-cancelled{ background: #F1F5F9; color: #64748B; }
+
+    /* Linha de cobrança */
+    .payment-row {
+      background: #fff;
+      border: 1px solid #F1F5F9;
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex; align-items: center; gap-x: 12px;
+      gap: 12px;
+      transition: box-shadow 0.15s;
+    }
+    .payment-row:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
+
+    /* Avatar */
+    .avatar-sm {
+      width: 40px; height: 40px; border-radius: 50%;
+      flex-shrink: 0; object-fit: cover;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 700; color: #fff;
+    }
+
+    /* Filtros */
+    .filter-btn { transition: all 0.15s; }
+    .filter-btn.active { background: #22C55E; color: #fff; border-color: #22C55E; }
+
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg,#F1F5F9 25%,#E2E8F0 50%,#F1F5F9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite; border-radius: 8px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Modal — z-index acima do bottom nav (z-index: 100) */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.5); backdrop-filter: blur(4px);
+      z-index: 110; display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal-sheet {
+      background: #fff; border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto;
+      padding: 0 0 32px;
+      transform: translateY(24px); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+    @media (min-width: 768px) {
+      .modal-overlay { align-items: center; }
+      .modal-sheet { border-radius: 24px; margin: 0 16px; max-height: 85vh;
+        transform: scale(0.96); }
+      .modal-overlay.open .modal-sheet { transform: scale(1); }
+    }
+    .modal-handle { width: 36px; height: 4px; background: #E2E8F0; border-radius: 2px; margin: 12px auto 0; }
+
+    /* QR Code */
+    #qr-image { max-width: 220px; width: 100%; border-radius: 12px; }
+
+    /* FAB */
+    .fab {
+      position: fixed; bottom: 88px; right: 20px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #22C55E; color: #fff;
+      box-shadow: 0 4px 14px rgba(34,197,94,0.45);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none;
+      transition: background 0.2s, transform 0.15s; z-index: 50;
+    }
+    .fab:hover { background: #15803D; transform: scale(1.05); }
+    @media (min-width: 1024px) { .fab { display: none; } }
+
+    /* Linha de cobrança clicável */
+    .payment-row { cursor: pointer; }
+    .payment-row:active { background: #F8FAFC; }
+  </style>
+</head>
+
+<body class="min-h-screen">
+<div id="main-content" class="min-h-screen">
+
+  <!-- ============================================================
+       HEADER COM AÇÃO PRINCIPAL
+       ============================================================ -->
+  <div class="px-4 lg:px-8 pb-6">
+
+    <!-- Cards de métricas -->
+    <div id="metrics-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <!-- Renderizado via JS -->
+      <div class="metric-card col-span-2 lg:col-span-4"><div class="skeleton h-20 w-full"></div></div>
+    </div>
+
+    <!-- Gráfico de receita -->
+    <div class="bg-white border border-gray-100 rounded-2xl p-5 mb-6 shadow-sm">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h3 class="font-bold text-gray-900 text-base">Receita Mensal</h3>
+          <p class="text-xs text-gray-400 mt-0.5">Últimos 6 meses (pago + pendente)</p>
+        </div>
+      </div>
+      <div class="h-40">
+        <canvas id="revenue-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Botão gerar cobranças -->
+    <div id="bulk-section" class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-5 mb-6 text-white">
+      <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div class="flex-1">
+          <h3 class="font-bold text-lg">Cobranças do mês</h3>
+          <p id="bulk-preview-text" class="text-green-100 text-sm mt-0.5">Carregando…</p>
+        </div>
+        <button id="btn-bulk-generate"
+          class="flex items-center gap-2 px-5 py-2.5 bg-white text-green-700 rounded-xl font-semibold text-sm hover:bg-green-50 transition-colors flex-shrink-0 disabled:opacity-50"
+          disabled>
+          <i data-lucide="zap" class="w-4 h-4"></i>
+          Gerar cobranças
+        </button>
+      </div>
+      <!-- Barra de progresso (oculta inicialmente) -->
+      <div id="bulk-progress" class="hidden mt-4">
+        <div class="bg-green-400 rounded-full h-1.5 overflow-hidden">
+          <div id="bulk-progress-bar" class="bg-white h-full rounded-full transition-all duration-300" style="width:0%"></div>
+        </div>
+        <p id="bulk-progress-text" class="text-green-100 text-xs mt-1.5">Gerando cobranças…</p>
+      </div>
+    </div>
+
+    <!-- Filtros + busca -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-4">
+      <!-- Busca -->
+      <div class="relative flex-1">
+        <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+          <i data-lucide="search" class="w-4 h-4"></i>
+        </span>
+        <input type="text" id="search-input" placeholder="Buscar por nome do aluno…"
+          class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 bg-white" />
+      </div>
+      <!-- Mês -->
+      <input type="month" id="month-filter"
+        class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-green-400 cursor-pointer" />
+      <!-- Ordenação -->
+      <select id="sort-select"
+        class="px-3 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:border-green-400 cursor-pointer">
+        <option value="due_date_desc">Vencimento ↓</option>
+        <option value="due_date_asc">Vencimento ↑</option>
+        <option value="amount_desc">Valor ↓</option>
+      </select>
+    </div>
+
+    <!-- Filtros de status -->
+    <div class="flex gap-2 flex-wrap mb-4" id="status-filters">
+      <button class="filter-btn active px-4 py-1.5 text-sm font-medium border border-gray-200 rounded-full bg-white text-gray-600" data-status="">Todos</button>
+      <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200 rounded-full bg-white text-gray-600" data-status="pending">Pendentes</button>
+      <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200 rounded-full bg-white text-gray-600" data-status="paid">Pagos</button>
+      <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200 rounded-full bg-white text-gray-600" data-status="overdue">Inadimplentes</button>
+    </div>
+
+    <!-- Contador -->
+    <p id="result-count" class="text-sm text-gray-400 mb-4"></p>
+
+    <!-- Lista de cobranças -->
+    <div id="payments-list" class="flex flex-col gap-3">
+      <!-- Renderizado via JS -->
+    </div>
+
+    <!-- Paginação -->
+    <div id="pagination" class="flex justify-center gap-2 mt-8 hidden"></div>
+  </div>
+</div>
+
+<!-- FAB mobile -->
+<button class="fab" id="fab-btn" aria-label="Nova cobrança">
+  <i data-lucide="plus" class="w-6 h-6"></i>
+</button>
+
+
+<!-- ============================================================
+     MODAL: QR CODE PIX
+     ============================================================ -->
+<div id="modal-qr" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="px-6 pt-4 pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-900">QR Code Pix</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+      </button>
+    </div>
+    <div class="px-6 py-4 flex flex-col items-center gap-4">
+      <div id="qr-student-info" class="text-center">
+        <div id="qr-student-name" class="font-semibold text-gray-900"></div>
+        <div id="qr-amount" class="text-2xl font-bold text-green-600 font-mono mt-1"></div>
+        <div id="qr-due" class="text-xs text-gray-400 mt-0.5"></div>
+      </div>
+
+      <div id="qr-container" class="p-3 bg-gray-50 rounded-2xl border border-gray-100">
+        <img id="qr-image" src="" alt="QR Code Pix" class="block" />
+      </div>
+
+      <div id="qr-no-code" class="text-center text-gray-500 text-sm hidden">
+        <i data-lucide="image-off" class="w-8 h-8 mx-auto text-gray-300 mb-2"></i>
+        QR Code não disponível.<br>
+        <span class="text-xs text-gray-400">Integração Asaas não configurada ou cobrança manual.</span>
+      </div>
+
+      <div id="copy-paste-section" class="w-full hidden">
+        <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Pix Copia e Cola</label>
+        <div class="flex gap-2">
+          <input type="text" id="copy-paste-input" readonly
+            class="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 truncate" />
+          <button id="btn-copy-pix"
+            class="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-semibold transition-colors flex-shrink-0">
+            Copiar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     MODAL: MARCAR COMO PAGO
+     ============================================================ -->
+<div id="modal-mark-paid" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="px-6 pt-4 pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-900">Confirmar Pagamento</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+      </button>
+    </div>
+    <div class="px-6 pt-2 space-y-4">
+      <div id="mark-paid-info" class="p-3 bg-green-50 rounded-xl border border-green-100 text-sm text-green-800"></div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Forma de pagamento</label>
+        <select id="paid-method"
+          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 bg-white">
+          <option value="">Não informado</option>
+          <option value="pix">Pix</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="cartao">Cartão</option>
+          <option value="transferencia">Transferência</option>
+          <option value="boleto">Boleto</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Data do pagamento</label>
+        <input type="date" id="paid-date"
+          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      </div>
+
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Observações</label>
+        <input type="text" id="paid-notes" placeholder="Opcional"
+          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      </div>
+
+      <button id="btn-confirm-paid"
+        class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold text-sm transition-colors">
+        Confirmar pagamento
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     MODAL: NOVA COBRANÇA MANUAL
+     ============================================================ -->
+<div id="modal-new-payment" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="px-6 pt-4 pb-2 flex items-center justify-between">
+      <h2 class="text-lg font-bold text-gray-900">Nova Cobrança</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+      </button>
+    </div>
+    <form id="new-payment-form" class="px-6 pt-2 space-y-4" novalidate>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Aluno <span class="text-red-400">*</span></label>
+        <select id="new-student" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 bg-white">
+          <option value="">Selecione…</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Valor (R$) <span class="text-red-400">*</span></label>
+          <input type="number" id="new-amount" step="0.01" min="1" placeholder="150,00"
+            class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Vencimento <span class="text-red-400">*</span></label>
+          <input type="date" id="new-due-date"
+            class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Observações</label>
+        <input type="text" id="new-notes" placeholder="Opcional"
+          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      </div>
+      <div id="new-payment-error" class="text-sm text-red-500 hidden"></div>
+      <button type="submit" id="btn-create-payment"
+        class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold text-sm transition-colors">
+        Criar cobrança
+      </button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     MODAL: ACTION SHEET (toque no card de cobrança)
+     ============================================================ -->
+<div id="modal-actions" class="modal-overlay">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <!-- Info da cobrança -->
+    <div class="px-6 pt-4 pb-3 border-b border-gray-100">
+      <div class="flex items-center gap-3">
+        <div id="as-avatar" class="flex-shrink-0"></div>
+        <div class="flex-1 min-w-0">
+          <div id="as-name" class="font-semibold text-gray-900 truncate"></div>
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span id="as-amount" class="text-sm font-mono font-semibold text-gray-700"></span>
+            <span id="as-badge"></span>
+          </div>
+          <div id="as-due" class="text-xs text-gray-400 mt-0.5"></div>
+        </div>
+      </div>
+    </div>
+    <!-- Botões de ação -->
+    <div id="as-actions" class="px-4 pt-3 pb-2 flex flex-col gap-1"></div>
+    <!-- Fechar -->
+    <div class="px-4 pb-6">
+      <button class="modal-close w-full py-3 text-sm font-medium text-gray-500 rounded-xl hover:bg-gray-100 transition-colors">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none"></div>
+
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script>
+  Auth.requireAuth('trainer');
+  lucide.createIcons();
+
+  // ----------------------------------------------------------------
+  // Estado
+  // ----------------------------------------------------------------
+  const state = {
+    currentStatus: '',
+    currentSort:   'due_date_desc',
+    currentPage:   1,
+    currentMonth:  '',
+    searchTimeout: null,
+    activePaymentId: null,
+    chartInstance: null,
+    students: [],
+    payments: [],
+  };
+
+  // ----------------------------------------------------------------
+  // Utilidades
+  // ----------------------------------------------------------------
+  const fmtBRL = (v) => Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  const fmtDate = (s) => s ? new Date(s + 'T12:00:00').toLocaleDateString('pt-BR') : '—';
+  const today = () => new Date().toISOString().slice(0,10);
+
+  const AVATAR_COLORS = ['#22C55E','#3B82F6','#F97316','#8B5CF6','#EC4899','#14B8A6','#F59E0B'];
+  function avatarColor(name) {
+    let h = 0; for (const c of name) h = (h * 31 + c.charCodeAt(0)) % AVATAR_COLORS.length;
+    return AVATAR_COLORS[h];
+  }
+  function initials(name) {
+    return (name || '').trim().split(/\s+/).slice(0,2).map(n=>n[0]).join('').toUpperCase();
+  }
+  function avatarHTML(student, size = 40) {
+    if (student?.avatar_url)
+      return `<img src="${student.avatar_url}" class="rounded-full object-cover" style="width:${size}px;height:${size}px" alt="${student.name}">`;
+    const bg = avatarColor(student?.name || '');
+    return `<div class="avatar-sm" style="width:${size}px;height:${size}px;background:${bg}">${initials(student?.name||'')}</div>`;
+  }
+
+  const STATUS_CONFIG = {
+    pending:   { label: 'Pendente',    cls: 'badge-pending'  },
+    paid:      { label: 'Pago',        cls: 'badge-paid'     },
+    overdue:   { label: 'Inadimplente',cls: 'badge-overdue'  },
+    cancelled: { label: 'Cancelado',   cls: 'badge-cancelled'},
+  };
+
+  function badge(status) {
+    const cfg = STATUS_CONFIG[status] || { label: status, cls: 'badge-pending' };
+    return `<span class="badge ${cfg.cls}">${cfg.label}</span>`;
+  }
+
+  // ----------------------------------------------------------------
+  // Modal helpers
+  // ----------------------------------------------------------------
+  function openModal(id) {
+    document.getElementById(id)?.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    lucide.createIcons();
+  }
+  function closeModal(id) {
+    document.getElementById(id)?.classList.remove('open');
+    if (!document.querySelector('.modal-overlay.open')) document.body.style.overflow = '';
+  }
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) closeModal(el.id); });
+  });
+  document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', () => closeModal(btn.closest('.modal-overlay')?.id));
+  });
+
+  // ----------------------------------------------------------------
+  // Dashboard / métricas
+  // ----------------------------------------------------------------
+  async function loadDashboard() {
+    const metricsGrid = document.getElementById('metrics-grid');
+    try {
+      const res = await Api.get('/api/payments/dashboard');
+      if (!res.success) return;
+      const d = res.data;
+
+      metricsGrid.innerHTML = `
+        <div class="metric-card">
+          <div class="metric-label">MRR do Mês</div>
+          <div class="metric-value text-gray-900">${fmtBRL(d.mrr_current)}</div>
+          <div class="metric-sub">previsto + recebido</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Recebido</div>
+          <div class="metric-value text-green-600">${fmtBRL(d.total_paid_month)}</div>
+          <div class="metric-sub">neste mês</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Pendente</div>
+          <div class="metric-value text-yellow-600">${fmtBRL(d.total_pending)}</div>
+          <div class="metric-sub">aguardando</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Inadimplente</div>
+          <div class="metric-value text-red-500">${fmtBRL(d.total_overdue)}</div>
+          <div class="metric-sub">${d.students_overdue.length} aluno(s)</div>
+        </div>
+      `;
+
+      renderChart(d.mrr_history);
+    } catch (e) {
+      metricsGrid.innerHTML = '<div class="col-span-4 text-sm text-gray-400 text-center py-4">Erro ao carregar métricas.</div>';
+    }
+  }
+
+  function renderChart(history) {
+    const ctx = document.getElementById('revenue-chart');
+    if (!ctx) return;
+    if (state.chartInstance) state.chartInstance.destroy();
+    state.chartInstance = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: history.map(h => h.label),
+        datasets: [{
+          label: 'Receita',
+          data: history.map(h => h.amount),
+          backgroundColor: history.map((_, i) =>
+            i === history.length - 1 ? '#22C55E' : '#BBF7D0'
+          ),
+          borderRadius: 6,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false },
+          tooltip: { callbacks: { label: ctx => fmtBRL(ctx.raw) } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+          y: { grid: { color: '#F1F5F9' }, ticks: { font: { size: 11 }, callback: v => fmtBRL(v) }, border: { display: false } },
+        },
+      },
+    });
+  }
+
+  // ----------------------------------------------------------------
+  // Preview bulk
+  // ----------------------------------------------------------------
+  async function loadBulkPreview() {
+    const text = document.getElementById('bulk-preview-text');
+    const btn  = document.getElementById('btn-bulk-generate');
+    try {
+      const now = new Date();
+      const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+      const res = await Api.get(`/api/payments/preview-bulk?month=${month}`);
+      if (res.success) {
+        const d = res.data;
+        if (d.pending_count === 0) {
+          text.textContent = `Todos os ${d.total_students} alunos já têm cobrança para ${d.month_label}.`;
+          btn.disabled = true;
+        } else {
+          text.textContent = `${d.pending_count} aluno(s) sem cobrança para ${d.month_label}.`;
+          btn.disabled = false;
+        }
+        btn.dataset.month = month;
+      }
+    } catch { text.textContent = 'Não foi possível verificar.'; }
+  }
+
+  // ----------------------------------------------------------------
+  // Gerar cobranças em lote
+  // ----------------------------------------------------------------
+  document.getElementById('btn-bulk-generate').addEventListener('click', async () => {
+    const btn      = document.getElementById('btn-bulk-generate');
+    const progress = document.getElementById('bulk-progress');
+    const bar      = document.getElementById('bulk-progress-bar');
+    const pText    = document.getElementById('bulk-progress-text');
+    const month    = btn.dataset.month;
+
+    btn.disabled = true;
+    progress.classList.remove('hidden');
+    pText.textContent = 'Gerando cobranças…';
+
+    // Anima barra (simulada — o endpoint é síncrono)
+    let pct = 0;
+    const ticker = setInterval(() => {
+      pct = Math.min(pct + 8, 85);
+      bar.style.width = pct + '%';
+    }, 200);
+
+    try {
+      const res = await Api.post('/api/payments/bulk', { month });
+      clearInterval(ticker);
+      bar.style.width = '100%';
+
+      if (res.success) {
+        const d = res.data;
+        pText.textContent = `${d.created} cobrança(s) gerada(s). ${d.skipped} pulada(s).${d.errors.length ? ` ${d.errors.length} erro(s).` : ''}`;
+        Toast.success(res.message);
+        await loadDashboard();
+        await loadPayments();
+        await loadBulkPreview();
+      } else {
+        pText.textContent = res.message || 'Erro ao gerar cobranças.';
+        Toast.error(res.message);
+      }
+    } catch {
+      clearInterval(ticker);
+      pText.textContent = 'Erro de conexão.';
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { bar.style.width = '0%'; progress.classList.add('hidden'); }, 3000);
+    }
+  });
+
+  // ----------------------------------------------------------------
+  // Lista de cobranças
+  // ----------------------------------------------------------------
+  async function loadPayments() {
+    const list    = document.getElementById('payments-list');
+    const counter = document.getElementById('result-count');
+
+    // Skeleton
+    list.innerHTML = Array(4).fill(0).map(() => `
+      <div class="payment-row">
+        <div class="skeleton w-10 h-10 rounded-full flex-shrink-0"></div>
+        <div class="flex-1 space-y-2">
+          <div class="skeleton h-3.5 w-36 rounded"></div>
+          <div class="skeleton h-3 w-24 rounded"></div>
+        </div>
+        <div class="skeleton h-6 w-20 rounded-full"></div>
+      </div>
+    `).join('');
+
+    const params = new URLSearchParams({ sort: state.currentSort, page: state.currentPage, per_page: 30 });
+    if (state.currentStatus) params.set('status', state.currentStatus);
+    if (state.currentMonth)  params.set('month',  state.currentMonth);
+    const search = document.getElementById('search-input').value.trim();
+    if (search) params.set('search', search);
+
+    try {
+      const res = await Api.get(`/api/payments/?${params}`);
+      if (!res.success) { list.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">Erro ao carregar cobranças.</p>'; return; }
+
+      const { payments, pagination } = res.data;
+      counter.textContent = `${pagination.total} cobrança(s)`;
+
+      if (payments.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-12">
+            <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+              <i data-lucide="receipt" class="w-6 h-6 text-gray-400"></i>
+            </div>
+            <p class="text-sm text-gray-500">Nenhuma cobrança encontrada</p>
+          </div>`;
+        lucide.createIcons(); return;
+      }
+
+      state.payments = payments;
+      list.innerHTML = payments.map(p => renderPaymentRow(p)).join('');
+      renderPagination(pagination);
+      lucide.createIcons();
+    } catch {
+      list.innerHTML = '<p class="text-sm text-gray-400 text-center py-8">Erro de conexão.</p>';
+    }
+  }
+
+  function renderPaymentRow(p) {
+    const studentName = p.student?.name || 'Aluno removido';
+    const hasPix = !!(p.pix_qr_code || p.pix_copy_paste);
+
+    return `
+      <div class="payment-row" data-id="${p.id}" onclick="openActionsSheet('${p.id}')">
+        <!-- Avatar -->
+        <div class="flex-shrink-0">${avatarHTML(p.student)}</div>
+
+        <!-- Info -->
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-gray-900 text-sm truncate">${studentName}</div>
+          <div class="flex items-center gap-2 mt-0.5 flex-wrap">
+            <span class="text-xs text-gray-400">Venc. ${fmtDate(p.due_date)}</span>
+            ${p.paid_at ? `<span class="text-xs text-green-600">Pago ${fmtDate(p.paid_at.slice(0,10))}</span>` : ''}
+          </div>
+        </div>
+
+        <!-- Valor -->
+        <div class="text-right flex-shrink-0">
+          <div class="font-semibold text-gray-900 font-mono text-sm">${fmtBRL(p.amount)}</div>
+        </div>
+
+        <!-- Badge -->
+        <div class="flex-shrink-0">${badge(p.status)}</div>
+
+        <!-- Seta indicando que é clicável -->
+        <div class="flex-shrink-0 text-gray-300">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </div>
+      </div>
+    `;
+  }
+
+  function openActionsSheet(paymentId) {
+    const payment = (state.payments || []).find(p => p.id === paymentId);
+    if (!payment) return;
+
+    const studentName = payment.student?.name || 'Aluno removido';
+    const hasPix      = !!(payment.pix_qr_code || payment.pix_copy_paste);
+    const canMarkPaid = payment.status !== 'paid' && payment.status !== 'cancelled';
+    const canCancel   = payment.status !== 'cancelled' && payment.status !== 'paid';
+
+    // Preenche cabeçalho
+    document.getElementById('as-avatar').innerHTML = avatarHTML(payment.student, 44);
+    document.getElementById('as-name').textContent  = studentName;
+    document.getElementById('as-amount').textContent = fmtBRL(payment.amount);
+    document.getElementById('as-badge').innerHTML    = badge(payment.status);
+    document.getElementById('as-due').textContent    = `Vencimento: ${fmtDate(payment.due_date)}`;
+
+    // Preenche botões de ação
+    let html = '';
+    if (hasPix) {
+      html += `<button class="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+                       onclick="closeModal('modal-actions'); openQRModal('${paymentId}')">
+        <span class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="qr-code" class="w-4 h-4 text-green-600"></i>
+        </span>
+        <span class="text-sm font-medium text-gray-800">Ver QR Code Pix</span>
+      </button>`;
+    }
+    if (canMarkPaid) {
+      html += `<button class="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-left"
+                       onclick="closeModal('modal-actions'); openMarkPaidModal('${paymentId}')">
+        <span class="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="check-circle" class="w-4 h-4 text-green-600"></i>
+        </span>
+        <span class="text-sm font-medium text-gray-800">Marcar como pago</span>
+      </button>`;
+    }
+    if (canCancel) {
+      html += `<button class="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl hover:bg-red-50 active:bg-red-100 transition-colors text-left"
+                       onclick="closeModal('modal-actions'); cancelPayment('${paymentId}')">
+        <span class="w-9 h-9 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i>
+        </span>
+        <span class="text-sm font-medium text-red-600">Cancelar cobrança</span>
+      </button>`;
+    }
+    if (!html) {
+      html = '<p class="text-sm text-gray-400 text-center py-3">Nenhuma ação disponível.</p>';
+    }
+
+    document.getElementById('as-actions').innerHTML = html;
+    lucide.createIcons();
+    openModal('modal-actions');
+  }
+
+  // ----------------------------------------------------------------
+  // Paginação
+  // ----------------------------------------------------------------
+  function renderPagination(pagination) {
+    const container = document.getElementById('pagination');
+    if (pagination.pages <= 1) { container.classList.add('hidden'); return; }
+    container.classList.remove('hidden');
+
+    const pages = [];
+    for (let i = 1; i <= pagination.pages; i++) pages.push(i);
+
+    container.innerHTML = pages.map(p => `
+      <button onclick="goToPage(${p})"
+        class="w-9 h-9 rounded-xl text-sm font-medium border transition-colors
+               ${p === pagination.page ? 'bg-green-500 text-white border-green-500' : 'border-gray-200 text-gray-600 hover:bg-gray-50'}">
+        ${p}
+      </button>
+    `).join('');
+  }
+
+  function goToPage(p) {
+    state.currentPage = p;
+    loadPayments();
+  }
+
+  // ----------------------------------------------------------------
+  // Modal: QR Code
+  // ----------------------------------------------------------------
+  const _paymentsCache = {};
+
+  async function openQRModal(paymentId) {
+    document.querySelectorAll('.action-menu').forEach(m => m.classList.add('hidden'));
+    openModal('modal-qr');
+
+    // Busca payment (cache local)
+    let payment = _paymentsCache[paymentId];
+    if (!payment) {
+      const res = await Api.get(`/api/payments/${paymentId}`);
+      if (res.success) { payment = res.data.payment; _paymentsCache[paymentId] = payment; }
+    }
+    if (!payment) return;
+
+    document.getElementById('qr-student-name').textContent = payment.student?.name || '—';
+    document.getElementById('qr-amount').textContent = fmtBRL(payment.amount);
+    document.getElementById('qr-due').textContent = `Vencimento: ${fmtDate(payment.due_date)}`;
+
+    const qrImg        = document.getElementById('qr-image');
+    const qrContainer  = document.getElementById('qr-container');
+    const noCode       = document.getElementById('qr-no-code');
+    const copySection  = document.getElementById('copy-paste-section');
+    const copyInput    = document.getElementById('copy-paste-input');
+
+    if (payment.pix_qr_code) {
+      qrImg.src = `data:image/png;base64,${payment.pix_qr_code}`;
+      qrContainer.classList.remove('hidden');
+      noCode.classList.add('hidden');
+    } else {
+      qrContainer.classList.add('hidden');
+      noCode.classList.remove('hidden');
+    }
+
+    if (payment.pix_copy_paste) {
+      copyInput.value = payment.pix_copy_paste;
+      copySection.classList.remove('hidden');
+    } else {
+      copySection.classList.add('hidden');
+    }
+  }
+
+  document.getElementById('btn-copy-pix').addEventListener('click', () => {
+    const val = document.getElementById('copy-paste-input').value;
+    navigator.clipboard.writeText(val).then(() => {
+      Toast.success('Código Pix copiado!');
+    });
+  });
+
+  // ----------------------------------------------------------------
+  // Modal: Marcar como pago
+  // ----------------------------------------------------------------
+  function openMarkPaidModal(paymentId) {
+    state.activePaymentId = paymentId;
+
+    const payment = (state.payments || []).find(p => p.id === paymentId);
+    const info = payment
+      ? `Confirmar pagamento de <strong>${payment.student?.name || 'Aluno'}</strong>: <strong class="text-green-700">${fmtBRL(payment.amount)}</strong>`
+      : '';
+    document.getElementById('mark-paid-info').innerHTML = info;
+    document.getElementById('paid-date').value = today();
+    document.getElementById('paid-method').value = '';
+    document.getElementById('paid-notes').value = '';
+    openModal('modal-mark-paid');
+  }
+
+  document.getElementById('btn-confirm-paid').addEventListener('click', async () => {
+    const btn    = document.getElementById('btn-confirm-paid');
+    const method = document.getElementById('paid-method').value;
+    const paidDate = document.getElementById('paid-date').value;
+    const notes  = document.getElementById('paid-notes').value.trim();
+
+    btn.disabled = true; btn.textContent = 'Confirmando…';
+
+    try {
+      const res = await Api.post(`/api/payments/${state.activePaymentId}/mark-paid`, {
+        payment_method: method || null,
+        paid_at:  paidDate ? paidDate + 'T12:00:00' : null,
+        notes:    notes || null,
+      });
+      if (res.success) {
+        Toast.success('Pagamento confirmado!');
+        closeModal('modal-mark-paid');
+        await loadDashboard();
+        await loadPayments();
+      } else {
+        Toast.error(res.message || 'Erro ao confirmar.');
+      }
+    } catch { Toast.error('Erro de conexão.'); }
+    finally { btn.disabled = false; btn.textContent = 'Confirmar pagamento'; }
+  });
+
+  // ----------------------------------------------------------------
+  // Cancelar cobrança
+  // ----------------------------------------------------------------
+  async function cancelPayment(paymentId) {
+    if (!confirm('Cancelar esta cobrança? Esta ação não pode ser desfeita.')) return;
+    try {
+      const res = await Api.delete(`/api/payments/${paymentId}`);
+      if (res.success) {
+        Toast.success('Cobrança cancelada.');
+        await loadDashboard();
+        await loadPayments();
+      } else {
+        Toast.error(res.message || 'Erro ao cancelar.');
+      }
+    } catch { Toast.error('Erro de conexão.'); }
+  }
+
+  // ----------------------------------------------------------------
+  // Nova cobrança manual
+  // ----------------------------------------------------------------
+  async function loadStudents() {
+    const res = await Api.get('/api/students/?per_page=200&status=active');
+    if (!res.success) return;
+    state.students = res.data.students;
+    const sel = document.getElementById('new-student');
+    sel.innerHTML = '<option value="">Selecione…</option>';
+    state.students.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id; opt.textContent = s.name;
+      sel.appendChild(opt);
+    });
+  }
+
+  function openNewPaymentModal() {
+    document.getElementById('new-student').value = '';
+    document.getElementById('new-amount').value = '';
+    document.getElementById('new-due-date').value = today();
+    document.getElementById('new-notes').value = '';
+    document.getElementById('new-payment-error').classList.add('hidden');
+    openModal('modal-new-payment');
+  }
+
+  document.getElementById('new-payment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const errEl   = document.getElementById('new-payment-error');
+    const btn     = document.getElementById('btn-create-payment');
+    const student = document.getElementById('new-student').value;
+    const amount  = document.getElementById('new-amount').value;
+    const due     = document.getElementById('new-due-date').value;
+    const notes   = document.getElementById('new-notes').value.trim();
+
+    errEl.classList.add('hidden');
+    if (!student) { errEl.textContent = 'Selecione um aluno.'; errEl.classList.remove('hidden'); return; }
+    if (!amount || isNaN(amount) || Number(amount) <= 0) { errEl.textContent = 'Informe um valor válido.'; errEl.classList.remove('hidden'); return; }
+    if (!due) { errEl.textContent = 'Informe a data de vencimento.'; errEl.classList.remove('hidden'); return; }
+
+    btn.disabled = true; btn.textContent = 'Criando…';
+    try {
+      const res = await Api.post('/api/payments/', { student_id: student, amount: Number(amount), due_date: due, notes: notes || null });
+      if (res.success) {
+        if (res.data.asaas_error) Toast.warning('Cobrança criada (sem Pix — verifique chave Asaas).');
+        else Toast.success('Cobrança criada com sucesso!');
+        closeModal('modal-new-payment');
+        await loadDashboard();
+        await loadPayments();
+      } else {
+        errEl.textContent = res.message || 'Erro ao criar cobrança.';
+        errEl.classList.remove('hidden');
+      }
+    } catch { errEl.textContent = 'Erro de conexão.'; errEl.classList.remove('hidden'); }
+    finally { btn.disabled = false; btn.textContent = 'Criar cobrança'; }
+  });
+
+  // ----------------------------------------------------------------
+  // Filtros e busca
+  // ----------------------------------------------------------------
+  document.getElementById('status-filters').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-status]');
+    if (!btn) return;
+    document.querySelectorAll('#status-filters .filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    state.currentStatus = btn.dataset.status;
+    state.currentPage   = 1;
+    loadPayments();
+  });
+
+  document.getElementById('sort-select').addEventListener('change', (e) => {
+    state.currentSort = e.target.value; state.currentPage = 1; loadPayments();
+  });
+
+  document.getElementById('month-filter').addEventListener('change', (e) => {
+    state.currentMonth = e.target.value; state.currentPage = 1; loadPayments();
+  });
+
+  document.getElementById('search-input').addEventListener('input', () => {
+    clearTimeout(state.searchTimeout);
+    state.searchTimeout = setTimeout(() => { state.currentPage = 1; loadPayments(); }, 400);
+  });
+
+  // ----------------------------------------------------------------
+  // FAB e botão nova cobrança desktop
+  // ----------------------------------------------------------------
+  document.getElementById('fab-btn').addEventListener('click', openNewPaymentModal);
+
+  // ----------------------------------------------------------------
+  // Expõe funções globalmente (usadas em onclick inline)
+  // ----------------------------------------------------------------
+  window.openActionsSheet  = openActionsSheet;
+  window.openQRModal       = openQRModal;
+  window.openMarkPaidModal = openMarkPaidModal;
+  window.cancelPayment     = cancelPayment;
+  window.goToPage          = goToPage;
+
+  // ----------------------------------------------------------------
+  // Inicialização
+  // ----------------------------------------------------------------
+  initLayout('Financeiro', [{ label: 'Financeiro' }]);
+
+  // Define mês padrão no filtro de mês
+  const now = new Date();
+  document.getElementById('month-filter').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  state.currentMonth = document.getElementById('month-filter').value;
+
+  Promise.all([loadDashboard(), loadBulkPreview(), loadStudents(), loadPayments()]);
+</script>
+</body>
+</html>

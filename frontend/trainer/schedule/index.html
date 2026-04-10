@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agenda — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
+    h1,h2,h3,h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    /* ====== GRADE SEMANAL (DESKTOP) ====== */
+    .schedule-grid {
+      display: grid;
+      /* coluna das horas + 7 dias */
+      grid-template-columns: 56px repeat(7, 1fr);
+      position: relative;
+    }
+
+    .grid-header-cell {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: #fff;
+      border-bottom: 2px solid #E2E8F0;
+    }
+
+    .hour-label {
+      height: 60px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding-right: 8px;
+      padding-top: 4px;
+      font-size: 11px;
+      color: #94A3B8;
+      font-family: 'JetBrains Mono', monospace;
+      border-right: 1px solid #E2E8F0;
+    }
+
+    .day-column {
+      position: relative;
+      border-right: 1px solid #F1F5F9;
+    }
+
+    .hour-cell {
+      height: 60px;
+      border-bottom: 1px solid #F1F5F9;
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .hour-cell:hover { background: #F0FDF4; }
+
+    .hour-cell.unavailable {
+      background: #F8FAFC;
+      cursor: default;
+    }
+    .hour-cell.unavailable:hover { background: #F8FAFC; }
+
+    /* Bloco de agendamento posicionado absolutamente na coluna */
+    .appointment-block {
+      position: absolute;
+      left: 2px;
+      right: 2px;
+      border-radius: 8px;
+      padding: 4px 6px;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      overflow: hidden;
+      z-index: 10;
+      transition: filter 0.15s, transform 0.1s;
+      border-left: 3px solid transparent;
+    }
+    .appointment-block:hover {
+      filter: brightness(0.93);
+      transform: scale(1.01);
+    }
+
+    /* Status colors */
+    .appt-scheduled  { background: #DBEAFE; color: #1E40AF; border-color: #3B82F6; }
+    .appt-confirmed  { background: #DCFCE7; color: #166534; border-color: #22C55E; }
+    .appt-completed  { background: #F1F5F9; color: #475569; border-color: #94A3B8; }
+    .appt-cancelled  { background: #FEE2E2; color: #991B1B; border-color: #EF4444; }
+    .appt-no_show    { background: #FEF9C3; color: #92400E; border-color: #F59E0B; }
+
+    /* Coluna "hoje" destacada */
+    .day-column.today { background: #F0FDF4; }
+    .grid-header-cell.today .day-name { color: #22C55E; }
+    .grid-header-cell.today .day-number {
+      background: #22C55E;
+      color: #fff;
+      border-radius: 50%;
+      width: 28px; height: 28px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ====== MOBILE: SELETOR DE DIAS ====== */
+    .day-pill {
+      width: 40px; height: 56px;
+      border-radius: 12px;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px;
+      cursor: pointer;
+      transition: background 0.15s;
+      border: 1px solid transparent;
+    }
+    .day-pill:hover { background: #F0FDF4; }
+    .day-pill.active {
+      background: #22C55E;
+      color: #fff !important;
+    }
+    .day-pill.active .day-pill-label,
+    .day-pill.active .day-pill-num { color: #fff !important; }
+
+    .day-pill-label { font-size: 10px; font-weight: 600; color: #94A3B8; text-transform: uppercase; }
+    .day-pill-num   { font-size: 16px; font-weight: 700; color: #0F172A; }
+
+    /* ====== CARD DE AGENDAMENTO (MOBILE) ====== */
+    .appt-card {
+      background: #fff;
+      border: 1px solid #F1F5F9;
+      border-radius: 16px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.1s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      border-left: 4px solid transparent;
+    }
+    .appt-card:hover {
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+      transform: translateY(-1px);
+    }
+    .appt-card.scheduled  { border-left-color: #3B82F6; }
+    .appt-card.confirmed  { border-left-color: #22C55E; }
+    .appt-card.completed  { border-left-color: #94A3B8; }
+    .appt-card.cancelled_trainer,
+    .appt-card.cancelled_student { border-left-color: #EF4444; }
+    .appt-card.no_show    { border-left-color: #F59E0B; }
+
+    /* ====== MODAL ====== */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.5);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal-sheet {
+      background: #fff;
+      border-radius: 24px 24px 0 0;
+      width: 100%;
+      max-width: 600px;
+      max-height: 92vh;
+      overflow-y: auto;
+      padding: 0 0 32px;
+      transform: translateY(24px);
+      transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .modal-overlay.open .modal-sheet { transform: translateY(0); }
+
+    @media (min-width: 768px) {
+      .modal-overlay { align-items: center; }
+      .modal-sheet {
+        border-radius: 24px;
+        max-width: 500px;
+        max-height: 85vh;
+        margin: 0 16px;
+        transform: scale(0.96) translateY(8px);
+      }
+      .modal-overlay.open .modal-sheet { transform: scale(1) translateY(0); }
+    }
+
+    .modal-drag-handle {
+      width: 36px; height: 4px;
+      background: #E2E8F0;
+      border-radius: 2px;
+      margin: 12px auto 0;
+    }
+
+    /* FAB */
+    .fab {
+      position: fixed; bottom: 88px; right: 20px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #22C55E; color: #fff;
+      box-shadow: 0 4px 14px rgba(34,197,94,0.45);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none;
+      transition: background 0.2s, transform 0.15s;
+      z-index: 50;
+    }
+    .fab:hover { background: #15803D; transform: scale(1.05); }
+    @media (min-width: 1024px) { .fab { display: none; } }
+
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Badge de status */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 3px 10px; border-radius: 100px;
+      font-size: 11px; font-weight: 600;
+    }
+    .badge-scheduled  { background: #DBEAFE; color: #1E40AF; }
+    .badge-confirmed  { background: #DCFCE7; color: #166534; }
+    .badge-completed  { background: #F1F5F9; color: #475569; }
+    .badge-cancelled  { background: #FEE2E2; color: #991B1B; }
+    .badge-no_show    { background: #FEF9C3; color: #92400E; }
+
+    /* Scrollbar fina */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 2px; }
+
+    /* Scroll area da grade */
+    .grid-scroll {
+      overflow-y: auto;
+      max-height: calc(100vh - 220px);
+    }
+  </style>
+
+  <!-- Shield anti-FOUC inline: executa sincronamente antes do primeiro paint.
+       Necessário porque layout.js é importado como módulo (sempre deferido). -->
+  <script>
+    (function () {
+      var s = document.createElement('style');
+      s.id = 'fouc-shield';
+      s.textContent = 'body{opacity:0;transition:opacity .15s}';
+      document.head.appendChild(s);
+    })();
+  </script>
+  <script>window.API_BASE_URL = window.location.origin;</script>
+</head>
+<body class="min-h-screen">
+
+<!-- Layout injetado por layout.js (sidebar desktop + bottom nav mobile) -->
+<div id="app-layout"></div>
+
+<!-- ============================================================
+     CONTEÚDO PRINCIPAL
+     ============================================================ -->
+<main id="main-content" class="lg:ml-64 min-h-screen pb-24 lg:pb-8">
+
+  <!-- HEADER -->
+  <div class="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 lg:px-8 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+
+      <!-- Navegação de semana -->
+      <div class="flex items-center gap-3">
+        <button id="btn-prev-week"
+          class="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors text-gray-600"
+          aria-label="Semana anterior">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+
+        <div class="text-center min-w-[140px]">
+          <div id="week-label" class="text-sm font-600 text-gray-900 font-['Plus_Jakarta_Sans']">carregando…</div>
+          <div id="week-range" class="text-xs text-gray-500 hidden lg:block"></div>
+        </div>
+
+        <button id="btn-next-week"
+          class="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors text-gray-600"
+          aria-label="Próxima semana">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+
+        <button id="btn-today"
+          class="hidden lg:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-sm font-medium border border-gray-200 hover:bg-gray-50 transition-colors text-gray-700">
+          Hoje
+        </button>
+      </div>
+
+      <!-- Ações desktop -->
+      <div class="hidden lg:flex items-center gap-2">
+        <button id="btn-new-appt-desktop"
+          class="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          Novo agendamento
+        </button>
+      </div>
+
+      <!-- Botão hoje (mobile) -->
+      <button id="btn-today-mobile"
+        class="lg:hidden text-xs font-semibold text-green-600 border border-green-200 rounded-lg px-2.5 py-1.5 hover:bg-green-50 transition-colors">
+        Hoje
+      </button>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       VISTA MOBILE: seletor de dia + lista
+       ============================================================ -->
+  <div id="mobile-view" class="lg:hidden px-4 pt-4">
+
+    <!-- Seletor de 7 dias (círculos clicáveis) -->
+    <div id="day-selector" class="flex justify-between gap-1 mb-4 overflow-x-auto pb-1 scrollbar-hide">
+      <!-- Renderizado via JS -->
+    </div>
+
+    <!-- Lista de agendamentos do dia selecionado -->
+    <div id="mobile-day-label" class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3"></div>
+    <div id="mobile-appt-list" class="flex flex-col gap-3">
+      <!-- Renderizado via JS -->
+    </div>
+  </div>
+
+  <!-- ============================================================
+       VISTA DESKTOP: grade semanal
+       ============================================================ -->
+  <div id="desktop-view" class="hidden lg:block px-8 pt-6">
+    <div class="max-w-7xl mx-auto">
+
+      <!-- Cabeçalho dos dias -->
+      <div id="grid-header" class="schedule-grid mb-0">
+        <!-- Espaço das horas -->
+        <div class="grid-header-cell border-b-2 border-gray-200 h-14"></div>
+        <!-- Dias: renderizado via JS -->
+      </div>
+
+      <!-- Corpo da grade com scroll -->
+      <div class="grid-scroll border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
+        <div id="schedule-body" class="schedule-grid">
+          <!-- Renderizado via JS -->
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<!-- FAB mobile -->
+<button class="fab" id="fab-btn" aria-label="Novo agendamento">
+  <i data-lucide="plus" class="w-6 h-6"></i>
+</button>
+
+
+<!-- ============================================================
+     MODAL: DETALHES DO AGENDAMENTO
+     ============================================================ -->
+<div id="modal-detail" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Detalhes do agendamento">
+  <div class="modal-sheet">
+    <div class="modal-drag-handle"></div>
+    <div class="px-6 pt-4 pb-2 flex items-start justify-between">
+      <div>
+        <div id="detail-status-badge" class="mb-1"></div>
+        <h2 class="text-lg font-bold text-gray-900">Detalhes da Sessão</h2>
+      </div>
+      <button class="modal-close w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Fechar">
+        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+      </button>
+    </div>
+
+    <!-- Conteúdo de detalhes -->
+    <div id="detail-body" class="px-6 space-y-4 mt-2">
+      <!-- Aluno -->
+      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+        <div id="detail-avatar" class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+          <i data-lucide="user" class="w-5 h-5 text-green-600"></i>
+        </div>
+        <div>
+          <div id="detail-student-name" class="font-semibold text-gray-900 text-sm">—</div>
+          <div id="detail-student-phone" class="text-xs text-gray-500">—</div>
+        </div>
+      </div>
+
+      <!-- Horário e local -->
+      <div class="grid grid-cols-2 gap-3">
+        <div class="p-3 bg-gray-50 rounded-xl">
+          <div class="text-xs text-gray-500 mb-0.5">Data e hora</div>
+          <div id="detail-datetime" class="text-sm font-semibold text-gray-900">—</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-xl">
+          <div class="text-xs text-gray-500 mb-0.5">Duração</div>
+          <div id="detail-duration" class="text-sm font-semibold text-gray-900">—</div>
+        </div>
+      </div>
+
+      <div id="detail-location-wrap" class="p-3 bg-gray-50 rounded-xl hidden">
+        <div class="text-xs text-gray-500 mb-0.5">Local</div>
+        <div id="detail-location" class="text-sm font-semibold text-gray-900">—</div>
+      </div>
+
+      <div id="detail-notes-wrap" class="p-3 bg-gray-50 rounded-xl hidden">
+        <div class="text-xs text-gray-500 mb-0.5">Observações</div>
+        <div id="detail-notes" class="text-sm text-gray-700">—</div>
+      </div>
+
+      <div id="detail-cancel-reason-wrap" class="p-3 bg-red-50 rounded-xl hidden">
+        <div class="text-xs text-red-500 mb-0.5">Motivo do cancelamento</div>
+        <div id="detail-cancel-reason" class="text-sm text-red-700">—</div>
+      </div>
+    </div>
+
+    <!-- Ações -->
+    <div id="detail-actions" class="px-6 mt-5 flex flex-col gap-2">
+      <button id="btn-confirm-appt"
+        class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold text-sm transition-colors hidden">
+        <i data-lucide="check" class="w-4 h-4 inline mr-1"></i> Confirmar sessão
+      </button>
+      <button id="btn-complete-appt"
+        class="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-semibold text-sm transition-colors hidden">
+        <i data-lucide="check-check" class="w-4 h-4 inline mr-1"></i> Marcar como concluída
+      </button>
+      <button id="btn-cancel-appt"
+        class="w-full py-3 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-semibold text-sm transition-colors border border-red-200 hidden">
+        <i data-lucide="x-circle" class="w-4 h-4 inline mr-1"></i> Cancelar sessão
+      </button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     MODAL: NOVO / EDITAR AGENDAMENTO
+     ============================================================ -->
+<div id="modal-form" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Novo agendamento">
+  <div class="modal-sheet">
+    <div class="modal-drag-handle"></div>
+    <div class="px-6 pt-4 pb-2 flex items-start justify-between">
+      <h2 id="form-modal-title" class="text-lg font-bold text-gray-900">Novo Agendamento</h2>
+      <button class="modal-close w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Fechar">
+        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+      </button>
+    </div>
+
+    <form id="appt-form" class="px-6 pt-2 space-y-4" novalidate>
+      <input type="hidden" id="edit-appt-id" value="" />
+
+      <!-- Aluno -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Aluno <span class="text-red-400">*</span></label>
+        <select id="form-student" class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 bg-white">
+          <option value="">Selecione um aluno…</option>
+        </select>
+      </div>
+
+      <!-- Data -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Data <span class="text-red-400">*</span></label>
+        <input type="date" id="form-date"
+          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      </div>
+
+      <!-- Horário início + duração -->
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Início <span class="text-red-400">*</span></label>
+          <input type="time" id="form-time"
+            class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Duração</label>
+          <select id="form-duration"
+            class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 bg-white">
+            <option value="30">30 min</option>
+            <option value="45">45 min</option>
+            <option value="60" selected>60 min</option>
+            <option value="90">90 min</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Local -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Local</label>
+        <input type="text" id="form-location" placeholder="Academia, endereço, online…"
+          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100" />
+      </div>
+
+      <!-- Notas -->
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Observações</label>
+        <textarea id="form-notes" rows="2" placeholder="Anotações para a sessão…"
+          class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 resize-none"></textarea>
+      </div>
+
+      <!-- Erro inline -->
+      <div id="form-error" class="text-sm text-red-500 hidden"></div>
+
+      <!-- Botão submit -->
+      <button type="submit" id="btn-save-appt"
+        class="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold text-sm transition-colors">
+        Salvar agendamento
+      </button>
+    </form>
+  </div>
+</div>
+
+
+<!-- ============================================================
+     MODAL: CANCELAR COM MOTIVO
+     ============================================================ -->
+<div id="modal-cancel" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Cancelar agendamento">
+  <div class="modal-sheet">
+    <div class="modal-drag-handle"></div>
+    <div class="px-6 pt-4 pb-2">
+      <h2 class="text-lg font-bold text-gray-900">Cancelar Sessão</h2>
+      <p class="text-sm text-gray-500 mt-1">Informe o motivo do cancelamento (opcional).</p>
+    </div>
+    <div class="px-6 pt-2 space-y-4">
+      <textarea id="cancel-reason" rows="3" placeholder="Ex: Imprevisto pessoal, reagendamento a pedido do aluno…"
+        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-red-300 focus:ring-2 focus:ring-red-100 resize-none"></textarea>
+      <div class="flex gap-3">
+        <button id="btn-cancel-back"
+          class="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors">
+          Voltar
+        </button>
+        <button id="btn-cancel-confirm"
+          class="flex-1 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm transition-colors">
+          Confirmar cancelamento
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Toast container -->
+<div id="toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none"></div>
+
+
+<!-- ============================================================
+     SCRIPTS
+     ============================================================ -->
+<script type="module">
+import { api }    from '/frontend/js/api.js';
+import { getUser, requireAuth } from '/frontend/js/auth.js';
+import { initLayout } from '/frontend/js/components/layout.js';
+import { showToast } from '/frontend/js/components/toast.js';
+
+// ----------------------------------------------------------------
+// Inicialização
+// ----------------------------------------------------------------
+requireAuth('trainer');
+initLayout({ active: 'schedule' });
+lucide.createIcons();
+
+// ----------------------------------------------------------------
+// Estado global da página
+// ----------------------------------------------------------------
+const state = {
+  currentWeek: null,      // string YYYY-WNN
+  appointments: [],       // lista da semana
+  students: [],           // alunos do trainer para o select
+  selectedDay: null,      // Date selecionado no mobile
+  activeAppt: null,       // appointment aberto no modal de detalhe
+  sessionDuration: 60,    // duração padrão do trainer
+};
+
+// ----------------------------------------------------------------
+// Utilitários de data
+// ----------------------------------------------------------------
+function toISOWeek(date) {
+  // Retorna "YYYY-WNN" da data fornecida
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  const weekNum = 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+  return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+}
+
+function getWeekDays(weekStr) {
+  // Retorna array de 7 Date objetos (seg a dom) da semana
+  const [year, weekPart] = weekStr.split('-W');
+  const weekNum = parseInt(weekPart, 10);
+  // 4 de janeiro sempre cai na semana 1
+  const jan4 = new Date(parseInt(year, 10), 0, 4);
+  const monday = new Date(jan4);
+  monday.setDate(jan4.getDate() - ((jan4.getDay() + 6) % 7) + (weekNum - 1) * 7);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+function sameDay(a, b) {
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth() === b.getMonth() &&
+         a.getDate() === b.getDate();
+}
+
+function formatTime(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  return d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDate(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' });
+}
+
+function formatDateFull(isoStr) {
+  if (!isoStr) return '—';
+  const d = new Date(isoStr);
+  return d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+}
+
+function diffMinutes(start, end) {
+  return Math.round((new Date(end) - new Date(start)) / 60000);
+}
+
+const DAY_NAMES_SHORT = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+const DAY_NAMES_FULL  = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+const HOUR_START = 6;
+const HOUR_END   = 22; // 06h a 21:59 (16 horas)
+const HOURS = Array.from({ length: HOUR_END - HOUR_START }, (_, i) => HOUR_START + i);
+
+// ----------------------------------------------------------------
+// Status helpers
+// ----------------------------------------------------------------
+const STATUS_LABELS = {
+  scheduled:          'Agendado',
+  confirmed:          'Confirmado',
+  completed:          'Concluído',
+  cancelled_trainer:  'Cancelado (PT)',
+  cancelled_student:  'Cancelado (Aluno)',
+  no_show:            'Não compareceu',
+};
+
+const STATUS_BADGE_CLASS = {
+  scheduled:          'badge-scheduled',
+  confirmed:          'badge-confirmed',
+  completed:          'badge-completed',
+  cancelled_trainer:  'badge-cancelled',
+  cancelled_student:  'badge-cancelled',
+  no_show:            'badge-no_show',
+};
+
+const STATUS_BLOCK_CLASS = {
+  scheduled:          'appt-scheduled',
+  confirmed:          'appt-confirmed',
+  completed:          'appt-completed',
+  cancelled_trainer:  'appt-cancelled',
+  cancelled_student:  'appt-cancelled',
+  no_show:            'appt-no_show',
+};
+
+// ----------------------------------------------------------------
+// Carregar dados
+// ----------------------------------------------------------------
+async function loadAppointments(weekStr) {
+  try {
+    const res = await api.get(`/api/appointments/?week=${weekStr}`);
+    if (res.success) {
+      state.appointments = res.data.appointments;
+      return true;
+    }
+  } catch (e) {
+    console.error('Erro ao carregar agendamentos:', e);
+  }
+  return false;
+}
+
+async function loadStudents() {
+  try {
+    const res = await api.get('/api/students/?per_page=200&status=active');
+    if (res.success) {
+      state.students = res.data.students;
+      // Popula select do formulário
+      const sel = document.getElementById('form-student');
+      sel.innerHTML = '<option value="">Selecione um aluno…</option>';
+      state.students.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = s.name;
+        sel.appendChild(opt);
+      });
+    }
+  } catch (e) {
+    console.error('Erro ao carregar alunos:', e);
+  }
+}
+
+async function loadTrainerSettings() {
+  try {
+    const res = await api.get('/api/trainer/availability');
+    if (res.success) {
+      state.sessionDuration = res.data.session_duration;
+      // Pré-seleciona duração no form
+      const sel = document.getElementById('form-duration');
+      if (sel) sel.value = String(state.sessionDuration);
+    }
+  } catch (e) {
+    console.error('Erro ao carregar configurações:', e);
+  }
+}
+
+// ----------------------------------------------------------------
+// Semana atual / navegação
+// ----------------------------------------------------------------
+function getCurrentWeek() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('week') || toISOWeek(new Date());
+}
+
+function navigateWeek(delta) {
+  const days = getWeekDays(state.currentWeek);
+  const newDate = new Date(days[0]);
+  newDate.setDate(newDate.getDate() + delta * 7);
+  state.currentWeek = toISOWeek(newDate);
+  updateURL();
+  render();
+}
+
+function goToToday() {
+  state.currentWeek = toISOWeek(new Date());
+  state.selectedDay = new Date();
+  updateURL();
+  render();
+}
+
+function updateURL() {
+  const url = new URL(window.location);
+  url.searchParams.set('week', state.currentWeek);
+  history.replaceState({}, '', url.toString());
+}
+
+// ----------------------------------------------------------------
+// Renderização principal
+// ----------------------------------------------------------------
+async function render() {
+  updateWeekLabel();
+  await loadAppointments(state.currentWeek);
+
+  const isMobile = window.innerWidth < 1024;
+  if (isMobile) {
+    renderMobile();
+  } else {
+    renderDesktop();
+  }
+  lucide.createIcons();
+}
+
+function updateWeekLabel() {
+  const days = getWeekDays(state.currentWeek);
+  const today = new Date();
+  const isCurrentWeek = days.some(d => sameDay(d, today));
+
+  const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const first = days[0];
+  const last  = days[6];
+  const sameMonth = first.getMonth() === last.getMonth();
+
+  const range = sameMonth
+    ? `${first.getDate()}–${last.getDate()} ${monthNames[first.getMonth()]} ${first.getFullYear()}`
+    : `${first.getDate()} ${monthNames[first.getMonth()]} – ${last.getDate()} ${monthNames[last.getMonth()]} ${last.getFullYear()}`;
+
+  document.getElementById('week-label').textContent = isCurrentWeek ? `Semana atual` : range;
+  document.getElementById('week-range').textContent = range;
+}
+
+// ----------------------------------------------------------------
+// MOBILE render
+// ----------------------------------------------------------------
+function renderMobile() {
+  document.getElementById('mobile-view').classList.remove('hidden');
+  document.getElementById('desktop-view').classList.add('hidden');
+
+  const days = getWeekDays(state.currentWeek);
+  const today = new Date();
+
+  // Garante que há um dia selecionado
+  if (!state.selectedDay || !days.some(d => sameDay(d, state.selectedDay))) {
+    state.selectedDay = days.find(d => sameDay(d, today)) || days[0];
+  }
+
+  renderDaySelector(days);
+  renderMobileDayList();
+}
+
+function renderDaySelector(days) {
+  const container = document.getElementById('day-selector');
+  const today = new Date();
+
+  container.innerHTML = days.map((day, i) => {
+    const isToday    = sameDay(day, today);
+    const isSelected = sameDay(day, state.selectedDay);
+    const hasAppts   = state.appointments.some(a => sameDay(new Date(a.starts_at), day));
+
+    return `
+      <button class="day-pill flex-shrink-0 ${isSelected ? 'active' : ''}"
+              data-date="${day.toISOString()}" title="${DAY_NAMES_FULL[i]}">
+        <span class="day-pill-label ${isSelected ? 'text-white' : isToday ? 'text-green-600' : ''}">${DAY_NAMES_SHORT[i]}</span>
+        <span class="day-pill-num ${isSelected ? 'text-white' : isToday ? 'text-green-600 font-extrabold' : ''}">${day.getDate()}</span>
+        ${hasAppts && !isSelected ? `<span class="w-1.5 h-1.5 rounded-full bg-green-400 mt-0.5"></span>` : '<span class="w-1.5 h-1.5 mt-0.5"></span>'}
+      </button>
+    `;
+  }).join('');
+
+  // Eventos de clique nos dias
+  container.querySelectorAll('.day-pill').forEach(btn => {
+    btn.addEventListener('click', () => {
+      state.selectedDay = new Date(btn.dataset.date);
+      renderMobile();
+      lucide.createIcons();
+    });
+  });
+}
+
+function renderMobileDayList() {
+  const label  = document.getElementById('mobile-day-label');
+  const list   = document.getElementById('mobile-appt-list');
+  const today  = new Date();
+  const isToday = sameDay(state.selectedDay, today);
+
+  label.textContent = isToday
+    ? 'Hoje — ' + state.selectedDay.toLocaleDateString('pt-BR', { day: '2-digit', month: 'long' })
+    : state.selectedDay.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
+
+  const dayAppts = state.appointments
+    .filter(a => sameDay(new Date(a.starts_at), state.selectedDay))
+    .sort((a, b) => new Date(a.starts_at) - new Date(b.starts_at));
+
+  if (dayAppts.length === 0) {
+    list.innerHTML = `
+      <div class="text-center py-12">
+        <div class="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
+          <i data-lucide="calendar-off" class="w-6 h-6 text-gray-400"></i>
+        </div>
+        <p class="text-sm text-gray-500">Nenhuma sessão neste dia</p>
+        <button onclick="openFormModal()" class="mt-3 text-sm font-semibold text-green-600 hover:underline">+ Agendar agora</button>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = dayAppts.map(appt => `
+    <div class="appt-card ${appt.status}" data-id="${appt.id}">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1 min-w-0">
+          <div class="font-semibold text-gray-900 text-sm truncate">
+            ${appt.student ? appt.student.name : 'Sessão bloqueada'}
+          </div>
+          <div class="flex items-center gap-1.5 mt-1 text-xs text-gray-500">
+            <i data-lucide="clock" class="w-3 h-3"></i>
+            ${formatTime(appt.starts_at)} – ${formatTime(appt.ends_at)}
+            <span class="text-gray-300">·</span>
+            ${diffMinutes(appt.starts_at, appt.ends_at)} min
+          </div>
+          ${appt.location ? `
+          <div class="flex items-center gap-1 mt-1 text-xs text-gray-400">
+            <i data-lucide="map-pin" class="w-3 h-3"></i>${appt.location}
+          </div>` : ''}
+        </div>
+        <span class="status-badge ${STATUS_BADGE_CLASS[appt.status] || 'badge-scheduled'} flex-shrink-0">
+          ${STATUS_LABELS[appt.status] || appt.status}
+        </span>
+      </div>
+    </div>
+  `).join('');
+
+  // Eventos
+  list.querySelectorAll('.appt-card').forEach(card => {
+    card.addEventListener('click', () => openDetailModal(card.dataset.id));
+  });
+}
+
+// ----------------------------------------------------------------
+// DESKTOP render
+// ----------------------------------------------------------------
+function renderDesktop() {
+  document.getElementById('mobile-view').classList.add('hidden');
+  document.getElementById('desktop-view').classList.remove('hidden');
+
+  const days = getWeekDays(state.currentWeek);
+  renderGridHeader(days);
+  renderGridBody(days);
+}
+
+function renderGridHeader(days) {
+  const header = document.getElementById('grid-header');
+  const today = new Date();
+
+  // Limpa colunas dos dias (mantém a 1ª div vazia do espaço das horas)
+  const firstCell = header.querySelector('div');
+  header.innerHTML = '';
+  header.appendChild(firstCell || Object.assign(document.createElement('div'), { className: 'grid-header-cell border-b-2 border-gray-200 h-14' }));
+
+  days.forEach((day, i) => {
+    const isToday = sameDay(day, today);
+    const cell = document.createElement('div');
+    cell.className = `grid-header-cell h-14 flex flex-col items-center justify-center gap-0.5 ${isToday ? 'today' : ''}`;
+
+    const numEl = document.createElement('div');
+    numEl.className = isToday
+      ? 'day-number w-7 h-7 rounded-full bg-green-500 text-white flex items-center justify-center text-sm font-bold'
+      : 'text-sm font-bold text-gray-900';
+    numEl.textContent = day.getDate();
+
+    const nameEl = document.createElement('div');
+    nameEl.className = `day-name text-xs font-medium ${isToday ? 'text-green-600' : 'text-gray-500'}`;
+    nameEl.textContent = DAY_NAMES_SHORT[i];
+
+    cell.appendChild(numEl);
+    cell.appendChild(nameEl);
+    header.appendChild(cell);
+  });
+}
+
+function renderGridBody(days) {
+  const body = document.getElementById('schedule-body');
+  body.innerHTML = '';
+
+  const today = new Date();
+
+  HOURS.forEach(hour => {
+    // Coluna das horas
+    const hourLabel = document.createElement('div');
+    hourLabel.className = 'hour-label';
+    hourLabel.textContent = `${String(hour).padStart(2,'0')}h`;
+    body.appendChild(hourLabel);
+
+    // Coluna de cada dia
+    days.forEach((day, dayIdx) => {
+      const cell = document.createElement('div');
+      cell.className = `hour-cell ${sameDay(day, today) ? 'today-col' : ''}`;
+      cell.dataset.day = dayIdx;
+      cell.dataset.hour = hour;
+
+      cell.addEventListener('click', () => {
+        const d = new Date(day);
+        d.setHours(hour, 0, 0, 0);
+        openFormModal(d);
+      });
+
+      body.appendChild(cell);
+    });
+  });
+
+  // Renderiza os blocos de agendamentos sobre a grade
+  renderAppointmentBlocks(days);
+}
+
+function renderAppointmentBlocks(days) {
+  const body = document.getElementById('schedule-body');
+  const PX_PER_MIN = 1; // 60px por hora = 1px por minuto
+
+  state.appointments.forEach(appt => {
+    const startDt = new Date(appt.starts_at);
+    const endDt   = new Date(appt.ends_at);
+
+    // Encontra o índice do dia (0=seg, 6=dom)
+    const dayIdx = days.findIndex(d => sameDay(d, startDt));
+    if (dayIdx === -1) return;
+
+    const startHour = startDt.getHours() + startDt.getMinutes() / 60;
+    const endHour   = endDt.getHours()   + endDt.getMinutes()   / 60;
+
+    if (startHour < HOUR_START || endHour > HOUR_END) return; // fora do range visível
+
+    const topPx  = (startHour - HOUR_START) * 60;
+    const height = Math.max((endHour - startHour) * 60 - 2, 20);
+
+    const block = document.createElement('div');
+    block.className = `appointment-block ${STATUS_BLOCK_CLASS[appt.status] || 'appt-scheduled'}`;
+    block.style.top    = `${topPx}px`;
+    block.style.height = `${height}px`;
+    // Posiciona na coluna correta (grid-column = 2 + dayIdx para pular a coluna das horas)
+    // Como é position:absolute dentro da coluna, precisamos usar a coluna correta do grid.
+    // Vamos usar um container por coluna para simplificar.
+
+    block.innerHTML = `
+      <div class="font-semibold truncate leading-tight">${appt.student ? appt.student.name : '—'}</div>
+      ${height > 30 ? `<div class="opacity-80 mt-0.5">${formatTime(appt.starts_at)}</div>` : ''}
+    `;
+    block.title = `${appt.student?.name || '—'} · ${formatTime(appt.starts_at)}–${formatTime(appt.ends_at)}`;
+    block.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDetailModal(appt.id);
+    });
+
+    // Injeta o bloco na célula correta
+    // A grade tem: coluna_horas + 7 colunas de dias.
+    // Cada row tem: 1 hour-label + 7 hour-cells.
+    // A posição no body: row = startHour - HOUR_START, col = dayIdx
+    // Precisamos obter a coluna correta e usar position:relative nela.
+    // Estratégia: wrappamos cada day-column em position:relative via JS.
+
+    // Seleciona a hora correta (linha) para este dia
+    const hourRow = Math.floor(startHour - HOUR_START);
+    // Cada linha tem 8 elementos (1 label + 7 células). Célula do dia = posição (hourRow * 8) + 1 + dayIdx
+    const cells = body.querySelectorAll('.hour-cell');
+    // Colunas de um dia específico: a cada linha, pegar a célula [dayIdx]
+    // Usamos um container wrapper por coluna completa para posicionamento absoluto
+    const colWrapper = getOrCreateDayColumnWrapper(body, days, dayIdx);
+    colWrapper.appendChild(block);
+  });
+}
+
+/**
+ * Cria ou retorna um wrapper div posicionado absolutamente cobrindo toda a coluna do dia.
+ * O wrapper tem position:absolute e abrange todas as horas da grade.
+ */
+function getOrCreateDayColumnWrapper(body, days, dayIdx) {
+  const wrapperId = `day-col-wrapper-${dayIdx}`;
+  let wrapper = document.getElementById(wrapperId);
+  if (wrapper) return wrapper;
+
+  wrapper = document.createElement('div');
+  wrapper.id = wrapperId;
+  wrapper.style.position    = 'absolute';
+  wrapper.style.top         = '0';
+  wrapper.style.bottom      = '0';
+  wrapper.style.pointerEvents = 'none';
+
+  // Calcula a posição horizontal do wrapper dentro do grid
+  // grid-template-columns: 56px repeat(7, 1fr)
+  // left = 56px + dayIdx * (100% - 56px) / 7
+  // Usamos percent para responsividade
+  wrapper.style.left  = `calc(56px + ${dayIdx} * ((100% - 56px) / 7))`;
+  wrapper.style.width = `calc((100% - 56px) / 7)`;
+
+  // Os filhos (appointment-block) precisam de pointerEvents novamente
+  wrapper.style.zIndex = '10';
+
+  // Reativa pointer-events nos blocos filhos via CSS
+  const style = document.createElement('style');
+  style.textContent = `#${wrapperId} .appointment-block { pointer-events: auto; }`;
+  document.head.appendChild(style);
+
+  // Posiciona o wrapper relativo ao body da grade
+  body.style.position = 'relative';
+  body.appendChild(wrapper);
+
+  return wrapper;
+}
+
+// ----------------------------------------------------------------
+// MODAL: Detalhe do agendamento
+// ----------------------------------------------------------------
+function openDetailModal(apptId) {
+  const appt = state.appointments.find(a => a.id === apptId);
+  if (!appt) return;
+
+  state.activeAppt = appt;
+
+  // Preenche os campos do modal
+  const statusEl = document.getElementById('detail-status-badge');
+  statusEl.innerHTML = `<span class="status-badge ${STATUS_BADGE_CLASS[appt.status] || 'badge-scheduled'}">${STATUS_LABELS[appt.status] || appt.status}</span>`;
+
+  const studentName  = document.getElementById('detail-student-name');
+  const studentPhone = document.getElementById('detail-student-phone');
+  const avatar       = document.getElementById('detail-avatar');
+
+  if (appt.student) {
+    studentName.textContent = appt.student.name;
+    studentPhone.textContent = appt.student.phone || 'Sem telefone';
+    if (appt.student.avatar_url) {
+      avatar.innerHTML = `<img src="${appt.student.avatar_url}" class="w-10 h-10 rounded-full object-cover" alt="avatar">`;
+    } else {
+      const initials = appt.student.name.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase();
+      avatar.innerHTML = `<div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 font-bold text-sm">${initials}</div>`;
+    }
+  } else {
+    studentName.textContent = 'Sessão bloqueada';
+    studentPhone.textContent = '—';
+  }
+
+  const datetimeEl = document.getElementById('detail-datetime');
+  datetimeEl.textContent = `${formatDate(appt.starts_at)} · ${formatTime(appt.starts_at)}`;
+
+  document.getElementById('detail-duration').textContent =
+    `${diffMinutes(appt.starts_at, appt.ends_at)} minutos`;
+
+  const locWrap  = document.getElementById('detail-location-wrap');
+  const notWrap  = document.getElementById('detail-notes-wrap');
+  const canWrap  = document.getElementById('detail-cancel-reason-wrap');
+
+  if (appt.location) {
+    locWrap.classList.remove('hidden');
+    document.getElementById('detail-location').textContent = appt.location;
+  } else {
+    locWrap.classList.add('hidden');
+  }
+
+  if (appt.notes) {
+    notWrap.classList.remove('hidden');
+    document.getElementById('detail-notes').textContent = appt.notes;
+  } else {
+    notWrap.classList.add('hidden');
+  }
+
+  if (appt.cancellation_reason) {
+    canWrap.classList.remove('hidden');
+    document.getElementById('detail-cancel-reason').textContent = appt.cancellation_reason;
+  } else {
+    canWrap.classList.add('hidden');
+  }
+
+  // Botões de ação conforme status
+  const btnConfirm  = document.getElementById('btn-confirm-appt');
+  const btnComplete = document.getElementById('btn-complete-appt');
+  const btnCancel   = document.getElementById('btn-cancel-appt');
+
+  btnConfirm.classList.add('hidden');
+  btnComplete.classList.add('hidden');
+  btnCancel.classList.add('hidden');
+
+  if (appt.status === 'scheduled') {
+    btnConfirm.classList.remove('hidden');
+    btnComplete.classList.remove('hidden');
+    btnCancel.classList.remove('hidden');
+  } else if (appt.status === 'confirmed') {
+    btnComplete.classList.remove('hidden');
+    btnCancel.classList.remove('hidden');
+  }
+
+  openModal('modal-detail');
+}
+
+// ----------------------------------------------------------------
+// MODAL: Formulário novo/editar agendamento
+// ----------------------------------------------------------------
+function openFormModal(prefillDate = null) {
+  // Limpa formulário
+  document.getElementById('edit-appt-id').value = '';
+  document.getElementById('form-student').value = '';
+  document.getElementById('form-location').value = '';
+  document.getElementById('form-notes').value = '';
+  document.getElementById('form-error').classList.add('hidden');
+  document.getElementById('form-modal-title').textContent = 'Novo Agendamento';
+  document.getElementById('btn-save-appt').textContent = 'Salvar agendamento';
+
+  // Pré-preenche data/hora se fornecido
+  if (prefillDate) {
+    const dateStr = prefillDate.toISOString().slice(0, 10);
+    const timeStr = `${String(prefillDate.getHours()).padStart(2,'0')}:${String(prefillDate.getMinutes()).padStart(2,'0')}`;
+    document.getElementById('form-date').value = dateStr;
+    document.getElementById('form-time').value = timeStr;
+  } else {
+    // Default: hoje, próxima hora cheia
+    const now = new Date();
+    now.setMinutes(0, 0, 0);
+    now.setHours(now.getHours() + 1);
+    document.getElementById('form-date').value = now.toISOString().slice(0, 10);
+    document.getElementById('form-time').value = `${String(now.getHours()).padStart(2,'0')}:00`;
+  }
+
+  document.getElementById('form-duration').value = String(state.sessionDuration);
+
+  openModal('modal-form');
+}
+
+// ----------------------------------------------------------------
+// Ações nos botões de detalhe
+// ----------------------------------------------------------------
+document.getElementById('btn-confirm-appt').addEventListener('click', async () => {
+  if (!state.activeAppt) return;
+  await patchAppointmentStatus(state.activeAppt.id, 'confirmed');
+  closeModal('modal-detail');
+});
+
+document.getElementById('btn-complete-appt').addEventListener('click', async () => {
+  if (!state.activeAppt) return;
+  try {
+    const res = await api.post(`/api/appointments/${state.activeAppt.id}/complete`, {});
+    if (res.success) {
+      showToast('Sessão concluída!', 'success');
+      closeModal('modal-detail');
+      await render();
+    } else {
+      showToast(res.message || 'Erro ao concluir sessão.', 'error');
+    }
+  } catch (e) {
+    showToast('Erro de conexão.', 'error');
+  }
+});
+
+document.getElementById('btn-cancel-appt').addEventListener('click', () => {
+  if (!state.activeAppt) return;
+  closeModal('modal-detail');
+  document.getElementById('cancel-reason').value = '';
+  openModal('modal-cancel');
+});
+
+document.getElementById('btn-cancel-back').addEventListener('click', () => {
+  closeModal('modal-cancel');
+  if (state.activeAppt) openDetailModal(state.activeAppt.id);
+});
+
+document.getElementById('btn-cancel-confirm').addEventListener('click', async () => {
+  if (!state.activeAppt) return;
+  const reason = document.getElementById('cancel-reason').value.trim();
+  try {
+    const res = await api.post(`/api/appointments/${state.activeAppt.id}/cancel`, { reason });
+    if (res.success) {
+      showToast('Agendamento cancelado.', 'success');
+      closeModal('modal-cancel');
+      await render();
+    } else {
+      showToast(res.message || 'Erro ao cancelar.', 'error');
+    }
+  } catch (e) {
+    showToast('Erro de conexão.', 'error');
+  }
+});
+
+async function patchAppointmentStatus(id, status) {
+  try {
+    const res = await api.patch(`/api/appointments/${id}`, { status });
+    if (res.success) {
+      showToast(`Agendamento ${STATUS_LABELS[status] || status}!`, 'success');
+      await render();
+    } else {
+      showToast(res.message || 'Erro ao atualizar.', 'error');
+    }
+  } catch (e) {
+    showToast('Erro de conexão.', 'error');
+  }
+}
+
+// ----------------------------------------------------------------
+// Formulário: submit
+// ----------------------------------------------------------------
+document.getElementById('appt-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const editId    = document.getElementById('edit-appt-id').value;
+  const studentId = document.getElementById('form-student').value;
+  const dateVal   = document.getElementById('form-date').value;
+  const timeVal   = document.getElementById('form-time').value;
+  const duration  = parseInt(document.getElementById('form-duration').value, 10);
+  const location  = document.getElementById('form-location').value.trim();
+  const notes     = document.getElementById('form-notes').value.trim();
+  const errEl     = document.getElementById('form-error');
+
+  errEl.classList.add('hidden');
+
+  if (!dateVal || !timeVal) {
+    errEl.textContent = 'Data e hora são obrigatórios.';
+    errEl.classList.remove('hidden');
+    return;
+  }
+
+  const startsAt = new Date(`${dateVal}T${timeVal}:00`);
+  const endsAt   = new Date(startsAt.getTime() + duration * 60000);
+
+  const payload = {
+    student_id:  studentId || null,
+    starts_at:   startsAt.toISOString(),
+    ends_at:     endsAt.toISOString(),
+    location:    location || null,
+    notes:       notes || null,
+  };
+
+  const btn = document.getElementById('btn-save-appt');
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+
+  try {
+    let res;
+    if (editId) {
+      res = await api.patch(`/api/appointments/${editId}`, payload);
+    } else {
+      res = await api.post('/api/appointments/', payload);
+    }
+
+    if (res.success) {
+      showToast(editId ? 'Agendamento atualizado!' : 'Agendamento criado!', 'success');
+      closeModal('modal-form');
+      await render();
+    } else {
+      errEl.textContent = res.message || 'Erro ao salvar agendamento.';
+      errEl.classList.remove('hidden');
+    }
+  } catch (err) {
+    errEl.textContent = 'Erro de conexão. Tente novamente.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = editId ? 'Salvar alterações' : 'Salvar agendamento';
+  }
+});
+
+// ----------------------------------------------------------------
+// Controles de navegação
+// ----------------------------------------------------------------
+document.getElementById('btn-prev-week').addEventListener('click', () => navigateWeek(-1));
+document.getElementById('btn-next-week').addEventListener('click', () => navigateWeek(1));
+document.getElementById('btn-today').addEventListener('click', goToToday);
+document.getElementById('btn-today-mobile').addEventListener('click', goToToday);
+document.getElementById('btn-new-appt-desktop').addEventListener('click', () => openFormModal());
+document.getElementById('fab-btn').addEventListener('click', () => openFormModal());
+
+// Fechar modais pelo overlay ou pelo botão X
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeModal(overlay.id);
+  });
+});
+document.querySelectorAll('.modal-close').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const modal = btn.closest('.modal-overlay');
+    if (modal) closeModal(modal.id);
+  });
+});
+
+// ----------------------------------------------------------------
+// Modal helpers
+// ----------------------------------------------------------------
+function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    lucide.createIcons();
+  }
+}
+
+function closeModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.remove('open');
+  // Só restaura scroll se nenhum modal estiver aberto
+  const hasOpen = document.querySelectorAll('.modal-overlay.open').length > 0;
+  if (!hasOpen) document.body.style.overflow = '';
+}
+
+// Expõe openFormModal globalmente para o link inline no empty state mobile
+window.openFormModal = openFormModal;
+
+// ----------------------------------------------------------------
+// Responsividade: re-renderiza ao redimensionar
+// ----------------------------------------------------------------
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => render(), 200);
+});
+
+// ----------------------------------------------------------------
+// Boot
+// ----------------------------------------------------------------
+state.currentWeek = getCurrentWeek();
+state.selectedDay = new Date();
+
+await Promise.all([loadStudents(), loadTrainerSettings()]);
+await render();
+
+// Scroll automático até a hora atual na grade desktop
+const now = new Date();
+const scrollTarget = (now.getHours() - HOUR_START) * 60 - 60;
+const gridScroll = document.querySelector('.grid-scroll');
+if (gridScroll && scrollTarget > 0) {
+  gridScroll.scrollTop = scrollTarget;
+}
+</script>
+</body>
+</html>

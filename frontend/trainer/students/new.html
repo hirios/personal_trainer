@@ -98,6 +98,13 @@
       color: #15803D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
   </style>
+
+  <!-- Utilitários no <head>: o FOUC-shield do layout.js executa antes do primeiro paint -->
+  <script>window.API_BASE_URL = window.location.origin;</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
 </head>
 
 <body>
@@ -348,12 +355,6 @@
 
     </div><!-- /max-w -->
   </div>
-
-  <script>window.API_BASE_URL = "http://localhost:5000";</script>
-  <script src="/frontend/js/api.js"></script>
-  <script src="/frontend/js/auth.js"></script>
-  <script src="/frontend/js/components/toast.js"></script>
-  <script src="/frontend/js/components/layout.js"></script>
 
   <script>
     Auth.requireAuth('trainer');

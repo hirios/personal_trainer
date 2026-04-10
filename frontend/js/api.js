@@ -5,8 +5,8 @@
  */
 
 const Api = (() => {
-  // URL base da API — ajuste conforme o ambiente
-  const BASE_URL = window.API_BASE_URL || "http://localhost:5000";
+  // URL base da API — usa a mesma origem da página para funcionar em qualquer host/IP
+  const BASE_URL = window.API_BASE_URL || window.location.origin;
 
   // Flag para evitar múltiplos refreshes simultâneos
   let _refreshing = false;

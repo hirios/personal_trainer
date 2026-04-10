@@ -14,6 +14,17 @@
  *   </script>
  */
 
+// ─── Anti-FOUC ────────────────────────────────────────────────────────────────
+// Este bloco executa SINCRONAMENTE quando o script é parseado (ainda no <head>),
+// antes de o browser renderizar o body. Oculta o body até que initLayout()
+// injete a sidebar e então o revela com um fade-in suave, eliminando o flicker.
+(function () {
+  const shield = document.createElement("style");
+  shield.id = "layout-fouc-shield";
+  shield.textContent = "body { opacity: 0; transition: opacity 0.15s ease; }";
+  document.head.appendChild(shield);
+})();
+
 // Definição dos itens de navegação do trainer
 const NAV_ITEMS = [
   {
@@ -25,13 +36,13 @@ const NAV_ITEMS = [
   {
     id: "schedule",
     label: "Agenda",
-    href: "/frontend/trainer/schedule.html",
+    href: "/frontend/trainer/schedule/index.html",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
   },
   {
     id: "financial",
     label: "Financeiro",
-    href: "/frontend/trainer/financial.html",
+    href: "/frontend/trainer/payments/index.html",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
   },
   {
@@ -370,4 +381,14 @@ function initLayout(pageTitle, breadcrumbs = []) {
 
   // Atualiza título da aba
   document.title = `${pageTitle} — FitFlow Pro`;
+
+  // Revela o body depois que sidebar + fontes estão prontos (elimina auth flicker e FOUT)
+  Promise.race([
+    document.fonts.ready,
+    new Promise((r) => setTimeout(r, 800)), // fallback: máximo 800ms de espera
+  ]).then(() => {
+    requestAnimationFrame(() => {
+      document.body.style.opacity = "1";
+    });
+  });
 }

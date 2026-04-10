@@ -112,6 +112,22 @@ class Student(User):
         comment="Última vez que o aluno acessou a plataforma",
     )
 
+    # --- Pagamentos ---
+    payments = db.relationship(
+        "Payment",
+        back_populates="student",
+        lazy="dynamic",
+        foreign_keys="Payment.student_id",
+    )
+
+    # --- Agendamentos ---
+    appointments = db.relationship(
+        "Appointment",
+        back_populates="student",
+        lazy="dynamic",
+        foreign_keys="Appointment.student_id",
+    )
+
     # --- Serialização ---
     def to_dict(self) -> dict:
         """Estende o to_dict do User com campos do Student."""

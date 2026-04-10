@@ -363,7 +363,7 @@
   <div id="video-frame"></div>
 </div>
 
-<script>window.API_BASE_URL = "http://localhost:5000";</script>
+<script>window.API_BASE_URL = window.location.origin;</script>
 <script>
   const params   = new URLSearchParams(window.location.search);
   const TOKEN    = params.get('token');

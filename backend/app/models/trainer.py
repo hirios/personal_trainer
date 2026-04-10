@@ -63,12 +63,35 @@ class Trainer(User):
         comment="Horas mínimas de antecedência para cancelamento sem custo",
     )
 
+    # --- Disponibilidade semanal ---
+    # Formato JSON: {"1": [{"start":"08:00","end":"12:00"}], ..., "7": [...]}
+    # Chaves = isoweekday (1=seg, 7=dom). Valor = lista de blocos de horário.
+    # None = não configurado (usa default: seg-sex 06:00–22:00).
+    availability = db.Column(
+        db.JSON,
+        nullable=True,
+        default=None,
+        comment="Grade de disponibilidade semanal em JSON",
+    )
+
     # --- Relacionamentos ---
     students = db.relationship(
         "Student",
         back_populates="trainer",
         lazy="dynamic",
         foreign_keys="Student.trainer_id",
+    )
+    appointments = db.relationship(
+        "Appointment",
+        back_populates="trainer",
+        lazy="dynamic",
+        foreign_keys="Appointment.trainer_id",
+    )
+    payments = db.relationship(
+        "Payment",
+        back_populates="trainer",
+        lazy="dynamic",
+        foreign_keys="Payment.trainer_id",
     )
 
     # --- Serialização ---
@@ -86,6 +109,7 @@ class Trainer(User):
                 ),
                 "session_duration": self.session_duration,
                 "cancellation_hours_policy": self.cancellation_hours_policy,
+                "availability": self.availability,
             }
         )
         return data
