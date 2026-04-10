@@ -1,0 +1,1986 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perfil do Aluno — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
+    h1,h2,h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    /* Tabs */
+    .tab-btn {
+      padding: 10px 16px; font-size: 14px; font-weight: 600;
+      color: #64748B; border-bottom: 2px solid transparent;
+      cursor: pointer; white-space: nowrap; transition: color 0.15s, border-color 0.15s;
+      background: none; border-top: none; border-left: none; border-right: none;
+    }
+    .tab-btn:hover { color: #22C55E; }
+    .tab-btn.active { color: #22C55E; border-bottom-color: #22C55E; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* Engagement circle */
+    .engagement-ring { transform: rotate(-90deg); }
+    .engagement-track { fill: none; stroke: #F1F5F9; stroke-width: 8; }
+    .engagement-progress {
+      fill: none; stroke-width: 8; stroke-linecap: round;
+      transition: stroke-dashoffset 0.8s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    /* Input inline edit */
+    .editable-field {
+      border: 1.5px solid transparent; border-radius: 10px;
+      padding: 8px 12px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+      color: #0F172A; background: transparent; width: 100%;
+      transition: all 0.15s; outline: none;
+    }
+    .editable-field:hover { border-color: #E2E8F0; background: #F8FAFC; }
+    .editable-field:focus { border-color: #22C55E; background: #fff;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+
+    /* Quick action buttons */
+    .action-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 9px 16px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      border: 1.5px solid; cursor: pointer; transition: all 0.15s; white-space: nowrap;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+
+    /* Card interno */
+    .info-card {
+      background: #fff; border: 1px solid #F1F5F9;
+      border-radius: 16px; padding: 20px;
+    }
+
+    /* Skeleton */
+    .skeleton {
+      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+      background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Placeholder de módulo futuro */
+    .coming-soon-card {
+      background: #fff; border: 1px dashed #E2E8F0; border-radius: 20px;
+      padding: 48px 24px; text-align: center;
+    }
+
+    /* ── Módulo 4: Avaliação física ── */
+
+    /* Resumo automático */
+    .progress-summary-banner {
+      background: linear-gradient(135deg, #F0FDF4, #DCFCE7);
+      border: 1px solid #BBF7D0; border-radius: 16px;
+      padding: 14px 18px; font-size: 13px; color: #15803D; line-height: 1.6;
+    }
+
+    /* Cards de delta (comparação anterior) */
+    .delta-positive { color: #22C55E; font-size: 11px; font-weight: 700; }
+    .delta-negative { color: #EF4444; font-size: 11px; font-weight: 700; }
+    .delta-neutral  { color: #94A3B8; font-size: 11px; font-weight: 700; }
+
+    /* Grid de fotos */
+    .photo-thumb {
+      aspect-ratio: 3/4; object-fit: cover; border-radius: 12px;
+      cursor: pointer; transition: transform 0.15s, box-shadow 0.15s;
+      width: 100%;
+    }
+    .photo-thumb:hover { transform: scale(1.02); box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
+    .photo-card {
+      position: relative; background: #F8FAFC; border-radius: 14px;
+      overflow: hidden; border: 1px solid #F1F5F9;
+    }
+    .photo-card-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(to top, rgba(0,0,0,0.6) 0%, transparent 100%);
+      color: #fff; font-size: 11px; font-weight: 700;
+      padding: 20px 8px 8px; text-align: center;
+    }
+
+    /* Modal de avaliação */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(15,23,42,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: flex-start; justify-content: center;
+      padding: 20px; overflow-y: auto;
+    }
+    .modal-box {
+      background: #fff; border-radius: 24px;
+      width: 100%; max-width: 640px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.2);
+      margin: auto;
+    }
+    .modal-header {
+      padding: 24px 28px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 800; color: #0F172A;
+    }
+    .modal-close {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #F1F5F9; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #64748B; transition: background 0.15s;
+    }
+    .modal-close:hover { background: #E2E8F0; }
+    .modal-body { padding: 20px 28px; }
+    .modal-footer {
+      padding: 0 28px 24px;
+      display: flex; gap: 10px; justify-content: flex-end;
+    }
+    .modal-section-title {
+      font-size: 11px; font-weight: 700; color: #94A3B8;
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin-bottom: 12px; padding-bottom: 8px;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .form-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    @media (max-width: 500px) {
+      .form-grid { grid-template-columns: 1fr 1fr; }
+      .form-grid-3 { grid-template-columns: 1fr 1fr; }
+    }
+    .form-field label {
+      display: block; font-size: 11px; font-weight: 700;
+      color: #64748B; text-transform: uppercase;
+      letter-spacing: 0.05em; margin-bottom: 5px;
+    }
+    .form-field input, .form-field textarea {
+      width: 100%; padding: 9px 12px; border-radius: 10px;
+      border: 1.5px solid #E2E8F0; font-size: 14px;
+      font-family: 'DM Sans', sans-serif; color: #0F172A;
+      background: #F8FAFC; outline: none; transition: border-color 0.15s;
+    }
+    .form-field input:focus, .form-field textarea:focus {
+      border-color: #22C55E; background: #fff;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+    }
+    .form-field input[readonly] {
+      background: #F0FDF4; color: #15803D; font-weight: 700;
+      border-color: #BBF7D0; cursor: default;
+    }
+    .form-field .prev-value {
+      font-size: 10px; color: #94A3B8; margin-top: 3px; height: 14px;
+    }
+
+    /* Upload de fotos */
+    .photo-upload-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 500px) {
+      .photo-upload-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    .photo-upload-slot {
+      aspect-ratio: 3/4; border-radius: 12px; border: 2px dashed #E2E8F0;
+      background: #F8FAFC; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 6px;
+      cursor: pointer; transition: border-color 0.15s, background 0.15s;
+      position: relative; overflow: hidden;
+    }
+    .photo-upload-slot:hover { border-color: #22C55E; background: #F0FDF4; }
+    .photo-upload-slot.has-photo { border-style: solid; border-color: #BBF7D0; }
+    .photo-upload-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .photo-upload-slot .slot-label {
+      font-size: 10px; font-weight: 700; color: #94A3B8;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      text-align: center; position: relative; z-index: 1;
+    }
+    .photo-upload-slot.has-photo .slot-label {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: rgba(0,0,0,0.5); color: #fff; padding: 4px;
+    }
+    .photo-remove-btn {
+      position: absolute; top: 4px; right: 4px; z-index: 2;
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(239,68,68,0.9); color: #fff;
+      border: none; cursor: pointer; font-size: 11px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* Modal de comparação de fotos */
+    .compare-modal-overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(0,0,0,0.94);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 16px;
+    }
+    .compare-controls {
+      display: flex; gap: 12px; margin-bottom: 16px; width: 100%; max-width: 700px;
+      align-items: center;
+    }
+    .compare-select {
+      flex: 1; padding: 8px 12px; border-radius: 10px;
+      border: 1.5px solid #334155; background: #1E293B; color: #fff;
+      font-size: 13px; outline: none;
+    }
+    .compare-vs { color: #64748B; font-weight: 700; font-size: 13px; flex-shrink: 0; }
+    /* Slider de comparação */
+    .img-compare-wrap {
+      position: relative; width: 100%; max-width: 700px;
+      overflow: hidden; border-radius: 16px;
+      user-select: none; touch-action: none;
+      height: 50vh; background: #0F172A;
+    }
+    /* Ambas as imagens idênticas: absolute, mesmas dimensões, mesmo object-fit */
+    .img-compare-wrap img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: contain; object-position: center;
+      display: block;
+    }
+    .img-compare-b {
+      position: absolute; inset: 0; overflow: hidden;
+    }
+    .img-compare-b img {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: contain; object-position: center;
+    }
+    .img-compare-handle {
+      position: absolute; top: 0; bottom: 0;
+      width: 3px; background: #fff;
+      cursor: ew-resize;
+    }
+    .img-compare-handle::after {
+      content: '⟺'; position: absolute; top: 50%; transform: translate(-50%, -50%);
+      width: 32px; height: 32px; background: #fff; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; color: #0F172A; box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    /* Tabela de deltas */
+    .delta-table {
+      width: 100%; max-width: 700px; margin-top: 16px;
+      background: #1E293B; border-radius: 14px; overflow: hidden;
+    }
+    .delta-table th, .delta-table td {
+      padding: 8px 14px; font-size: 12px; text-align: left;
+    }
+    .delta-table th { color: #64748B; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+    .delta-table td { color: #CBD5E1; border-top: 1px solid #334155; }
+    .delta-up   { color: #22C55E; font-weight: 700; }
+    .delta-down { color: #EF4444; font-weight: 700; }
+  </style>
+</head>
+
+<body>
+  <div id="main-content" class="min-h-screen">
+
+    <!-- Loading state -->
+    <div id="loading-state" class="px-4 lg:px-6 pb-6">
+      <div class="bg-white rounded-2xl border border-gray-100 p-6 mb-6">
+        <div class="flex items-center gap-4 mb-4">
+          <div class="skeleton w-16 h-16 rounded-full"></div>
+          <div class="space-y-2 flex-1">
+            <div class="skeleton h-6 w-40"></div>
+            <div class="skeleton h-4 w-24"></div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <div class="skeleton h-9 w-28 rounded-xl"></div>
+          <div class="skeleton h-9 w-28 rounded-xl"></div>
+          <div class="skeleton h-9 w-28 rounded-xl"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conteúdo principal (oculto até carregar) -->
+    <div id="page-content" class="hidden px-4 lg:px-6 pb-10">
+
+      <!-- Header do aluno -->
+      <div class="bg-white rounded-2xl border border-gray-100 p-5 mb-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+
+          <!-- Avatar -->
+          <div class="relative flex-shrink-0">
+            <div id="student-avatar-wrap" class="w-16 h-16 rounded-full overflow-hidden flex-shrink-0"></div>
+          </div>
+
+          <!-- Info -->
+          <div class="flex-1 min-w-0">
+            <div class="flex flex-wrap items-start gap-2 mb-1">
+              <h2 class="text-xl font-bold text-gray-900" id="student-name">—</h2>
+              <span class="status-badge" id="student-status-badge"></span>
+            </div>
+            <p class="text-sm text-gray-400 mb-1" id="student-email">—</p>
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold mt-1"
+                  id="student-objective-badge"></span>
+          </div>
+
+          <!-- Ações rápidas -->
+          <div class="flex flex-wrap gap-2 sm:flex-shrink-0">
+            <button class="action-btn border-gray-200 text-gray-600 bg-white hover:bg-gray-50"
+                    id="btn-whatsapp" onclick="openWhatsApp()">
+              <i data-lucide="message-circle" class="w-4 h-4"></i>
+              Mensagem
+            </button>
+            <button class="action-btn border-green-200 text-green-700 bg-green-50 hover:bg-green-100"
+                    onclick="switchTab('workouts')">
+              <i data-lucide="dumbbell" class="w-4 h-4"></i>
+              Novo treino
+            </button>
+            <button class="action-btn border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100"
+                    onclick="switchTab('progress')">
+              <i data-lucide="activity" class="w-4 h-4"></i>
+              Avaliação
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Engajamento + Tabs -->
+      <div class="flex flex-col lg:flex-row gap-5">
+
+        <!-- Score de engajamento (coluna lateral desktop) -->
+        <div class="lg:w-56 flex-shrink-0">
+          <div class="info-card flex flex-col items-center text-center">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Engajamento</p>
+
+            <!-- SVG ring -->
+            <div class="relative mb-3" style="width:96px;height:96px">
+              <svg width="96" height="96" viewBox="0 0 96 96">
+                <circle class="engagement-track" cx="48" cy="48" r="40"/>
+                <circle class="engagement-progress" id="engagement-ring"
+                  cx="48" cy="48" r="40"
+                  stroke="#22C55E"
+                  stroke-dasharray="251.2"
+                  stroke-dashoffset="251.2"
+                  transform="rotate(-90 48 48)"/>
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span class="text-2xl font-extrabold text-gray-900" id="engagement-score">—</span>
+                <span class="text-xs text-gray-400">/ 100</span>
+              </div>
+            </div>
+
+            <span class="text-sm font-bold mb-3" id="engagement-level-label">—</span>
+
+            <!-- Detalhes -->
+            <div class="w-full space-y-2 text-left" id="engagement-details">
+              <!-- Preenchido via JS -->
+            </div>
+          </div>
+
+          <!-- Info rápida de contrato -->
+          <div class="info-card mt-4 space-y-3">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide">Contrato</p>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-gray-500">Mensalidade</span>
+              <span class="text-sm font-bold text-gray-900" id="info-fee">—</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-gray-500">Vencimento</span>
+              <span class="text-sm font-semibold text-gray-700" id="info-payment-day">—</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-xs text-gray-500">Modalidade</span>
+              <span class="text-sm font-semibold text-gray-700 capitalize" id="info-modality">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Área de abas -->
+        <div class="flex-1 min-w-0">
+          <!-- Tab bar -->
+          <div class="bg-white rounded-2xl border border-gray-100 shadow-sm mb-4 overflow-x-auto">
+            <div class="flex border-b border-gray-100 px-2 min-w-max">
+              <button class="tab-btn active" data-tab="overview" onclick="switchTab('overview')">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Visão geral
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="workouts" onclick="switchTab('workouts')">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="dumbbell" class="w-3.5 h-3.5"></i> Treinos
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="progress" onclick="switchTab('progress')">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="trending-up" class="w-3.5 h-3.5"></i> Evolução
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="schedule" onclick="switchTab('schedule')">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="calendar" class="w-3.5 h-3.5"></i> Agenda
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="financial" onclick="switchTab('financial')">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="dollar-sign" class="w-3.5 h-3.5"></i> Financeiro
+                </span>
+              </button>
+              <button class="tab-btn" data-tab="messages" onclick="switchTab('messages')">
+                <span class="flex items-center gap-1.5">
+                  <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Mensagens
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Conteúdo das abas -->
+
+          <!-- ABA 1: Visão geral -->
+          <div class="tab-content active" id="tab-overview">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+              <!-- Dados pessoais (editável inline) -->
+              <div class="info-card">
+                <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                  <i data-lucide="user" class="w-4 h-4 text-green-500"></i> Dados pessoais
+                </h3>
+                <div class="space-y-3" id="personal-fields">
+                  <!-- Preenchido via JS -->
+                </div>
+                <button onclick="savePersonalData()"
+                  class="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-600 text-white
+                         rounded-xl text-sm font-semibold transition-colors flex items-center
+                         justify-center gap-2" id="save-personal-btn">
+                  <i data-lucide="save" class="w-4 h-4"></i> Salvar alterações
+                </button>
+              </div>
+
+              <!-- Observações de saúde -->
+              <div class="info-card">
+                <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                  <i data-lucide="heart-pulse" class="w-4 h-4 text-red-400"></i> Saúde & notas
+                </h3>
+
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  Observações de saúde
+                </label>
+                <textarea id="field-health-notes" rows="3"
+                  class="editable-field resize-none border border-gray-100"
+                  placeholder="Lesões, restrições, medicamentos..."></textarea>
+
+                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5 mt-4">
+                  Notas internas <span class="text-gray-400 font-normal">(só você vê)</span>
+                </label>
+                <textarea id="field-internal-notes" rows="3"
+                  class="editable-field resize-none border border-gray-100"
+                  placeholder="Observações particulares..."></textarea>
+
+                <button onclick="saveNotes()"
+                  class="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-600 text-white
+                         rounded-xl text-sm font-semibold transition-colors flex items-center
+                         justify-center gap-2">
+                  <i data-lucide="save" class="w-4 h-4"></i> Salvar notas
+                </button>
+              </div>
+
+              <!-- Link de acesso -->
+              <div class="info-card lg:col-span-2">
+                <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
+                  <i data-lucide="link" class="w-4 h-4 text-blue-400"></i> Link de acesso do aluno
+                </h3>
+                <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                  <span class="flex-1 text-sm text-gray-600 font-mono truncate" id="access-link-display">—</span>
+                  <button onclick="copyLink()"
+                    class="flex items-center gap-1.5 text-sm font-semibold text-green-700 flex-shrink-0
+                           hover:text-green-800 transition-colors" id="copy-btn">
+                    <i data-lucide="copy" class="w-4 h-4"></i> Copiar
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- ABA 2: Treinos -->
+          <div class="tab-content" id="tab-workouts">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="font-bold text-gray-900">Fichas de treino</h3>
+              <a href="/frontend/trainer/workouts/builder.html?student_id=${studentId}"
+                 id="btn-nova-ficha"
+                 class="flex items-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600
+                        text-white text-sm font-semibold rounded-xl transition-colors">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Nova ficha
+              </a>
+            </div>
+            <!-- Lista de fichas (preenchida por JS) -->
+            <div id="workouts-loading" class="space-y-3">
+              <div class="h-20 bg-gray-100 rounded-2xl animate-pulse"></div>
+              <div class="h-20 bg-gray-100 rounded-2xl animate-pulse"></div>
+            </div>
+            <div id="workouts-list" class="space-y-3 hidden"></div>
+            <div id="workouts-empty" class="coming-soon-card hidden">
+              <div class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="dumbbell" class="w-6 h-6 text-green-400"></i>
+              </div>
+              <h3 class="font-bold text-gray-700 mb-2">Nenhuma ficha criada</h3>
+              <p class="text-sm text-gray-400 max-w-sm mx-auto">
+                Clique em "Nova ficha" para criar a primeira ficha de treino deste aluno.
+              </p>
+            </div>
+          </div>
+
+          <!-- ABA 3: Evolução -->
+          <div class="tab-content" id="tab-progress">
+
+            <!-- Cabeçalho: resumo + botão nova avaliação -->
+            <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
+              <div id="progress-summary" class="flex-1 min-w-0" style="display:none">
+                <div class="progress-summary-banner" id="progress-summary-text"></div>
+              </div>
+              <div class="flex-shrink-0">
+                <button onclick="openAssessmentModal()"
+                  class="flex items-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600
+                         text-white rounded-xl text-sm font-semibold transition-colors">
+                  <i data-lucide="plus" class="w-4 h-4"></i>
+                  Nova avaliação
+                </button>
+              </div>
+            </div>
+
+            <!-- Loading skeleton -->
+            <div id="progress-loading" class="space-y-4">
+              <div class="skeleton" style="height:220px;border-radius:16px;"></div>
+              <div class="skeleton" style="height:220px;border-radius:16px;"></div>
+            </div>
+
+            <!-- Estado vazio -->
+            <div id="progress-empty" class="coming-soon-card" style="display:none">
+              <div class="w-14 h-14 bg-green-50 rounded-2xl flex items-center justify-content:center mx-auto mb-4"
+                   style="display:flex;align-items:center;justify-content:center">
+                <i data-lucide="trending-up" class="w-6 h-6 text-green-400"></i>
+              </div>
+              <h3 class="font-bold text-gray-700 mb-2">Nenhuma avaliação ainda</h3>
+              <p class="text-sm text-gray-400 max-w-sm mx-auto">
+                Clique em "Nova avaliação" para registrar a primeira avaliação física deste aluno.
+              </p>
+            </div>
+
+            <!-- Gráficos (visível após carregar dados) -->
+            <div id="progress-charts" style="display:none" class="space-y-5">
+
+              <!-- Gráfico de peso -->
+              <div class="info-card">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="font-bold text-gray-800 text-sm">Peso (kg)</h3>
+                </div>
+                <div style="position:relative;height:200px">
+                  <canvas id="chart-weight"></canvas>
+                </div>
+              </div>
+
+              <!-- Gráfico de gordura corporal -->
+              <div class="info-card">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="font-bold text-gray-800 text-sm">Gordura Corporal (%)</h3>
+                </div>
+                <div style="position:relative;height:200px">
+                  <canvas id="chart-bodyfat"></canvas>
+                </div>
+              </div>
+
+              <!-- Gráfico radar: circunferências -->
+              <div class="info-card" id="radar-card" style="display:none">
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="font-bold text-gray-800 text-sm">Circunferências — 1ª vs Última avaliação</h3>
+                </div>
+                <div style="position:relative;height:280px">
+                  <canvas id="chart-radar"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grid de fotos -->
+            <div id="progress-photos" style="display:none" class="mt-5">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="font-bold text-gray-700 text-sm">Fotos de progresso</h3>
+                <button id="btn-compare" onclick="openCompareModal(0)"
+                  class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold
+                         bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors">
+                  <i data-lucide="columns-2" class="w-3.5 h-3.5"></i>
+                  Comparar fotos
+                </button>
+              </div>
+              <div id="photos-grid" class="grid grid-cols-3 gap-3 lg:grid-cols-4"></div>
+            </div>
+
+            <!-- Timeline de avaliações -->
+            <div id="assessments-timeline" style="display:none" class="mt-6">
+              <h3 class="font-bold text-gray-700 text-sm mb-3">Histórico de avaliações</h3>
+              <div id="assessments-list" class="space-y-3"></div>
+            </div>
+
+          </div>
+
+          <!-- ── Modal de avaliação ── -->
+          <div id="assessment-modal" class="modal-overlay" style="display:none" onclick="closeAssessmentModalOnBg(event)">
+            <div class="modal-box">
+              <div class="modal-header">
+                <div class="modal-title" id="assessment-modal-title">Nova avaliação</div>
+                <button class="modal-close" onclick="closeAssessmentModal()">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="modal-body">
+                <input type="hidden" id="assessment-id-field" value="" />
+
+                <!-- Data -->
+                <div class="form-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px">
+                  <div class="form-field col-span-2 lg:col-span-1">
+                    <label>Data da avaliação *</label>
+                    <input type="date" id="af-date" />
+                  </div>
+                </div>
+
+                <!-- Composição corporal -->
+                <div class="modal-section-title">Composição corporal</div>
+                <div class="form-grid form-grid-3">
+                  <div class="form-field">
+                    <label>Peso (kg)</label>
+                    <input type="number" id="af-weight" step="0.1" placeholder="75.0"
+                           oninput="updateBMIPreview()" />
+                    <div class="prev-value" id="prev-weight"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Altura (cm)</label>
+                    <input type="number" id="af-height" step="0.1" placeholder="175"
+                           oninput="updateBMIPreview()" />
+                    <div class="prev-value" id="prev-height"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>IMC</label>
+                    <input type="text" id="af-bmi-preview" readonly placeholder="—" />
+                  </div>
+                  <div class="form-field">
+                    <label>% Gordura</label>
+                    <input type="number" id="af-body-fat" step="0.1" placeholder="22.5" />
+                    <div class="prev-value" id="prev-body-fat"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Massa muscular (kg)</label>
+                    <input type="number" id="af-muscle-mass" step="0.1" placeholder="32.0" />
+                    <div class="prev-value" id="prev-muscle-mass"></div>
+                  </div>
+                </div>
+
+                <!-- Circunferências -->
+                <div class="modal-section-title">Circunferências (cm)</div>
+                <div class="form-grid form-grid-3">
+                  <div class="form-field">
+                    <label>Peito</label>
+                    <input type="number" id="af-chest" step="0.1" placeholder="96" />
+                    <div class="prev-value" id="prev-chest"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Cintura</label>
+                    <input type="number" id="af-waist" step="0.1" placeholder="80" />
+                    <div class="prev-value" id="prev-waist"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Quadril</label>
+                    <input type="number" id="af-hip" step="0.1" placeholder="95" />
+                    <div class="prev-value" id="prev-hip"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Abdômen</label>
+                    <input type="number" id="af-abdomen" step="0.1" placeholder="88" />
+                    <div class="prev-value" id="prev-abdomen"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Braço D (cm)</label>
+                    <input type="number" id="af-right-arm" step="0.1" placeholder="36" />
+                    <div class="prev-value" id="prev-right-arm"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Braço E (cm)</label>
+                    <input type="number" id="af-left-arm" step="0.1" placeholder="35" />
+                    <div class="prev-value" id="prev-left-arm"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Coxa D (cm)</label>
+                    <input type="number" id="af-right-thigh" step="0.1" placeholder="55" />
+                    <div class="prev-value" id="prev-right-thigh"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Coxa E (cm)</label>
+                    <input type="number" id="af-left-thigh" step="0.1" placeholder="54" />
+                    <div class="prev-value" id="prev-left-thigh"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Panturrilha D</label>
+                    <input type="number" id="af-right-calf" step="0.1" placeholder="36" />
+                    <div class="prev-value" id="prev-right-calf"></div>
+                  </div>
+                  <div class="form-field">
+                    <label>Panturrilha E</label>
+                    <input type="number" id="af-left-calf" step="0.1" placeholder="35" />
+                    <div class="prev-value" id="prev-left-calf"></div>
+                  </div>
+                </div>
+
+                <!-- Fotos -->
+                <div class="modal-section-title">Fotos</div>
+                <div class="photo-upload-grid" id="photo-upload-grid">
+                  <!-- Slots gerados via JS -->
+                </div>
+
+                <!-- Notas -->
+                <div class="modal-section-title">Notas</div>
+                <div class="form-field">
+                  <label>Observações da avaliação</label>
+                  <textarea id="af-notes" rows="3" style="resize:vertical"
+                    placeholder="Condicionamento físico em melhora, queixa de dor lombar..."></textarea>
+                </div>
+              </div>
+              <div class="modal-footer">
+                <button onclick="closeAssessmentModal()"
+                  class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-200
+                         bg-white text-gray-600 hover:bg-gray-50 transition-colors">
+                  Cancelar
+                </button>
+                <button id="assessment-save-btn" onclick="saveAssessment()"
+                  class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-green-500
+                         hover:bg-green-600 text-white transition-colors">
+                  Salvar avaliação
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Modal de comparação de fotos ── -->
+          <div id="compare-modal" class="compare-modal-overlay" style="display:none">
+            <button onclick="closeCompareModal()"
+              style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);
+                     color:#fff;border:none;width:40px;height:40px;border-radius:50%;
+                     cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center">
+              ✕
+            </button>
+            <div class="compare-controls" style="flex-direction:column;gap:8px">
+              <div style="display:flex;gap:12px;align-items:center;width:100%">
+                <select id="compare-sel-a" class="compare-select" onchange="renderCompare()"></select>
+                <span class="compare-vs">vs</span>
+                <select id="compare-sel-b" class="compare-select" onchange="renderCompare()"></select>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="color:#64748B;font-size:12px;font-weight:600;flex-shrink:0">Visão:</span>
+                <select id="compare-sel-view" class="compare-select" style="flex:none;width:auto;padding:6px 12px" onchange="renderCompare()">
+                  <option value="0">Frente</option>
+                  <option value="1">Costas</option>
+                  <option value="2">Lado D</option>
+                  <option value="3">Lado E</option>
+                </select>
+              </div>
+            </div>
+            <!-- Slider de imagens -->
+            <div class="img-compare-wrap" id="compare-wrap">
+              <img id="compare-img-a" src="" alt="Avaliação A" />
+              <div class="img-compare-b" id="compare-b-clip" style="clip-path:inset(0 50% 0 0)">
+                <img id="compare-img-b" src="" alt="Avaliação B" />
+              </div>
+              <div class="img-compare-handle" id="compare-handle" style="left:50%"></div>
+            </div>
+            <!-- Tabela de deltas -->
+            <div style="width:100%;max-width:700px;overflow-x:auto;margin-top:12px">
+              <table class="delta-table">
+                <thead>
+                  <tr>
+                    <th>Medida</th>
+                    <th id="th-a">Avaliação A</th>
+                    <th id="th-b">Avaliação B</th>
+                    <th>Diferença</th>
+                  </tr>
+                </thead>
+                <tbody id="delta-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- ABA 4: Agenda -->
+          <div class="tab-content" id="tab-schedule">
+            <div class="coming-soon-card">
+              <div class="w-14 h-14 bg-purple-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="calendar" class="w-6 h-6 text-purple-400"></i>
+              </div>
+              <h3 class="font-bold text-gray-700 mb-2">Agenda — Módulo 5</h3>
+              <p class="text-sm text-gray-400 max-w-sm mx-auto">
+                Agendamento de sessões, confirmações e histórico de presença no Módulo 5.
+              </p>
+            </div>
+          </div>
+
+          <!-- ABA 5: Financeiro -->
+          <div class="tab-content" id="tab-financial">
+            <div class="coming-soon-card">
+              <div class="w-14 h-14 bg-yellow-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="dollar-sign" class="w-6 h-6 text-yellow-500"></i>
+              </div>
+              <h3 class="font-bold text-gray-700 mb-2">Financeiro — Módulo 6</h3>
+              <p class="text-sm text-gray-400 max-w-sm mx-auto">
+                Cobranças via Pix, recorrência e histórico de pagamentos no Módulo 6.
+              </p>
+            </div>
+          </div>
+
+          <!-- ABA 6: Mensagens -->
+          <div class="tab-content" id="tab-messages">
+            <div class="coming-soon-card">
+              <div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <i data-lucide="message-square" class="w-6 h-6 text-pink-400"></i>
+              </div>
+              <h3 class="font-bold text-gray-700 mb-2">Mensagens — Módulo 7</h3>
+              <p class="text-sm text-gray-400 max-w-sm mx-auto">
+                Chat interno e envio de mensagens via WhatsApp pelo Módulo 7.
+              </p>
+            </div>
+          </div>
+
+        </div><!-- /tab area -->
+      </div><!-- /flex -->
+    </div><!-- /page-content -->
+
+    <!-- Error state -->
+    <div id="error-state" class="hidden px-4 py-16 flex flex-col items-center justify-center text-center">
+      <div class="w-16 h-16 bg-red-50 rounded-2xl flex items-center justify-center mb-4">
+        <i data-lucide="alert-circle" class="w-7 h-7 text-red-400"></i>
+      </div>
+      <h3 class="font-bold text-gray-700 mb-2">Aluno não encontrado</h3>
+      <p class="text-sm text-gray-400 mb-6">Verifique se o link está correto.</p>
+      <a href="/frontend/trainer/index.html"
+         class="px-6 py-2.5 bg-green-500 text-white rounded-xl text-sm font-semibold hover:bg-green-600">
+        Voltar para alunos
+      </a>
+    </div>
+
+  </div>
+
+  <script>window.API_BASE_URL = "http://localhost:5000";</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/modal.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
+
+  <script>
+    Auth.requireAuth('trainer');
+
+    // --- Estado global ---
+    let studentData = null;
+    const studentId = new URLSearchParams(window.location.search).get('id');
+
+    const OBJECTIVE_CONFIG = {
+      emagrecimento:  { label: 'Emagrecimento', bg: '#FFF7ED', color: '#C2410C' },
+      hipertrofia:    { label: 'Hipertrofia',   bg: '#EFF6FF', color: '#1D4ED8' },
+      condicionamento:{ label: 'Condicionamento', bg: '#F5F3FF', color: '#6D28D9' },
+      saude:          { label: 'Saúde',          bg: '#F0FDF4', color: '#15803D' },
+      reabilitacao:   { label: 'Reabilitação',   bg: '#FFFBEB', color: '#92400E' },
+    };
+
+    const STATUS_CONFIG = {
+      active:          { label: 'Ativo',        bg: '#F0FDF4', color: '#15803D', dot: '#22C55E' },
+      pending_payment: { label: 'Inadimplente', bg: '#FFF7ED', color: '#C2410C', dot: '#F97316' },
+      inactive:        { label: 'Inativo',      bg: '#F8FAFC', color: '#64748B', dot: '#94A3B8' },
+    };
+
+    const ENGAGEMENT_COLORS = {
+      alto:  { stroke: '#22C55E', label: 'Alto engajamento',  textColor: '#15803D' },
+      medio: { stroke: '#F97316', label: 'Engajamento médio', textColor: '#C2410C' },
+      baixo: { stroke: '#94A3B8', label: 'Baixo engajamento', textColor: '#64748B' },
+    };
+
+    // --- Carregar dados ---
+    async function loadStudent() {
+      if (!studentId) {
+        showError(); return;
+      }
+
+      const [studentRes, engagementRes] = await Promise.all([
+        Api.get(`/api/students/${studentId}`),
+        Api.get(`/api/students/${studentId}/engagement`),
+      ]);
+
+      if (!studentRes.success) {
+        showError(); return;
+      }
+
+      studentData = studentRes.data.student;
+      const engagement = engagementRes.success ? engagementRes.data : null;
+
+      renderHeader(studentData);
+      renderOverviewTab(studentData);
+      renderEngagement(engagement);
+      renderContractInfo(studentData);
+
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('page-content').classList.remove('hidden');
+      lucide.createIcons();
+
+      // Corrige o href do botão "Nova ficha" com o studentId real
+      const btnNovaFicha = document.getElementById('btn-nova-ficha');
+      if (btnNovaFicha) {
+        btnNovaFicha.href = `/frontend/trainer/workouts/builder.html?student_id=${studentId}`;
+      }
+
+      // Carrega fichas em paralelo
+      loadWorkouts();
+
+      // Ativa a aba do hash da URL
+      const hash = window.location.hash.replace('#', '') || 'overview';
+      switchTab(hash);
+    }
+
+    // --- Carregar fichas de treino do aluno ---
+    async function loadWorkouts() {
+      // Passa student_id como parâmetro para Api.get gerar a URL corretamente
+      // (evita redirect de /api/workouts → /api/workouts/ que derruba o header Authorization)
+      const result = await Api.get('/api/workouts/', { student_id: studentId });
+      document.getElementById('workouts-loading').classList.add('hidden');
+
+      if (!result.success) {
+        document.getElementById('workouts-empty').classList.remove('hidden');
+        return;
+      }
+
+      const workouts = result.data.workouts || [];
+      if (workouts.length === 0) {
+        document.getElementById('workouts-empty').classList.remove('hidden');
+        return;
+      }
+
+      const CATEGORY_LABELS = {
+        A: 'Treino A', B: 'Treino B', C: 'Treino C', D: 'Treino D',
+        E: 'Treino E', fullbody: 'Full Body', cardio: 'Cardio', funcional: 'Funcional',
+      };
+
+      const list = document.getElementById('workouts-list');
+      list.innerHTML = workouts.map(w => {
+        const catLabel = CATEGORY_LABELS[w.category] || w.category || '—';
+        const exCount  = w.exercise_count ?? '—';
+        const editUrl  = `/frontend/trainer/workouts/builder.html?id=${w.id}`;
+        const viewUrl  = studentData?.access_token
+          ? `/frontend/student/workout.html?token=${studentData.access_token}&workout=${w.id}`
+          : '#';
+
+        return `
+        <div class="workout-card flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm
+                    hover:border-green-200 transition-colors">
+          <div class="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+            <i data-lucide="dumbbell" class="w-5 h-5 text-green-500"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-semibold text-gray-900 text-sm truncate">${escHtml(w.title)}</p>
+            <p class="text-xs text-gray-400 mt-0.5">${catLabel} · ${exCount} exercícios</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <a href="${viewUrl}" target="_blank"
+               class="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+               title="Ver como aluno">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </a>
+            <a href="${editUrl}"
+               class="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+               title="Editar ficha">
+              <i data-lucide="pencil" class="w-4 h-4"></i>
+            </a>
+            <button onclick="deleteWorkout('${w.id}', '${escHtml(w.title).replace(/'/g, "\\'")}', this.closest('.workout-card'))"
+                    class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    title="Excluir ficha">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>`;
+      }).join('');
+
+      list.classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    // --- Excluir ficha de treino ---
+    async function deleteWorkout(workoutId, title, cardEl) {
+      if (!confirm(`Deseja excluir a ficha "${title}"?\nEsta ação não pode ser desfeita.`)) return;
+
+      try {
+        const result = await Api.del(`/api/workouts/${workoutId}`);
+        if (!result.success) {
+          Toast.error(result.message || 'Erro ao excluir a ficha.');
+          return;
+        }
+        // Remove o card do DOM sem recarregar a lista
+        cardEl.remove();
+
+        // Exibe o empty state se não restar nenhuma ficha
+        const list = document.getElementById('workouts-list');
+        if (!list.querySelector('.workout-card')) {
+          list.classList.add('hidden');
+          document.getElementById('workouts-empty').classList.remove('hidden');
+        }
+
+        Toast.success('Ficha excluída com sucesso.');
+      } catch (err) {
+        Toast.error('Erro de conexão ao excluir a ficha.');
+      }
+    }
+
+    // --- Render header ---
+    function renderHeader(s) {
+      // Avatar
+      const wrap = document.getElementById('student-avatar-wrap');
+      if (s.avatar_url) {
+        wrap.innerHTML = `<img src="${s.avatar_url}" class="w-16 h-16 object-cover rounded-full"/>`;
+      } else {
+        const initials = s.name.trim().split(/\s+/).slice(0,2).map(n=>n[0]).join('').toUpperCase();
+        const colors = ['#22C55E','#3B82F6','#8B5CF6','#F97316','#EC4899'];
+        let hash = 0; for(const c of s.name) hash=(hash*31+c.charCodeAt(0))&0xFFFFFF;
+        const bg = colors[Math.abs(hash) % colors.length];
+        wrap.innerHTML = `<div style="background:${bg};width:64px;height:64px;border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          font-family:'Plus Jakarta Sans',sans-serif;font-size:22px;font-weight:700;color:#fff">
+          ${initials}</div>`;
+      }
+
+      document.getElementById('student-name').textContent = s.name;
+      document.getElementById('student-email').textContent = s.email;
+
+      // Status badge
+      const stat = STATUS_CONFIG[s.status] || STATUS_CONFIG.inactive;
+      document.getElementById('student-status-badge').innerHTML =
+        `<span style="width:7px;height:7px;border-radius:50%;background:${stat.dot};display:inline-block"></span>
+         ${stat.label}`;
+      Object.assign(document.getElementById('student-status-badge').style, {
+        background: stat.bg, color: stat.color, padding: '4px 12px',
+        borderRadius: '999px', fontSize: '12px', fontWeight: '600',
+      });
+
+      // Objetivo
+      const obj = OBJECTIVE_CONFIG[s.objective];
+      if (obj) {
+        Object.assign(document.getElementById('student-objective-badge').style, {
+          background: obj.bg, color: obj.color,
+        });
+        document.getElementById('student-objective-badge').textContent = obj.label;
+      }
+
+      // Título da página
+      document.title = `${s.name} — FitFlow Pro`;
+    }
+
+    // --- Render engagement ---
+    function renderEngagement(engagement) {
+      if (!engagement) return;
+      const { score, level, details } = engagement;
+      const cfg = ENGAGEMENT_COLORS[level] || ENGAGEMENT_COLORS.baixo;
+
+      document.getElementById('engagement-score').textContent = score;
+      document.getElementById('engagement-level-label').textContent = cfg.label;
+      document.getElementById('engagement-level-label').style.color = cfg.textColor;
+
+      // Animate SVG ring
+      const circumference = 251.2;
+      const offset = circumference - (circumference * score / 100);
+      const ring = document.getElementById('engagement-ring');
+      ring.style.stroke = cfg.stroke;
+      setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+
+      // Detalhes
+      const detailsEl = document.getElementById('engagement-details');
+      const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+      const xIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`;
+
+      const items = [
+        {
+          ok: details.payment_ok,
+          label: details.payment_ok ? 'Pagamento em dia' : 'Pagamento pendente',
+        },
+        {
+          ok: details.days_since_access !== null && details.days_since_access <= 7,
+          label: details.days_since_access !== null
+            ? details.days_since_access === 0 ? 'Acessou hoje'
+            : `${details.days_since_access}d sem acessar`
+            : 'Nunca acessou',
+        },
+        {
+          ok: details.has_active_workout,
+          label: 'Ficha de treino ativa',
+        },
+      ];
+
+      detailsEl.innerHTML = items.map(i => `
+        <div class="flex items-center gap-2 py-1.5 border-b border-gray-50 last:border-0">
+          <span style="width:18px;height:18px;border-radius:50%;
+                       background:${i.ok ? '#F0FDF4' : '#FEF2F2'};
+                       color:${i.ok ? '#22C55E' : '#EF4444'};
+                       display:flex;align-items:center;justify-content:center;flex-shrink:0">
+            ${i.ok ? checkIcon : xIcon}
+          </span>
+          <span class="text-xs text-gray-600">${i.label}</span>
+        </div>
+      `).join('');
+    }
+
+    // --- Render contract info sidebar ---
+    function renderContractInfo(s) {
+      document.getElementById('info-fee').textContent = s.monthly_fee
+        ? `R$ ${Number(s.monthly_fee).toFixed(2).replace('.',',')}` : '—';
+      document.getElementById('info-payment-day').textContent = s.payment_day
+        ? `Dia ${s.payment_day}` : '—';
+      document.getElementById('info-modality').textContent = s.modality || '—';
+    }
+
+    // --- Render overview tab ---
+    function renderOverviewTab(s) {
+      const fields = [
+        { id: 'field-name',       label: 'Nome',            value: s.name,       type: 'text' },
+        { id: 'field-email',      label: 'E-mail',          value: s.email,      type: 'email' },
+        { id: 'field-phone',      label: 'Telefone',        value: s.phone || '', type: 'tel' },
+        { id: 'field-birth-date', label: 'Nascimento',      value: s.birth_date || '', type: 'date' },
+        {
+          id: 'field-gender', label: 'Sexo', value: s.gender,
+          type: 'select',
+          options: [
+            { value: '', label: 'Não informado' },
+            { value: 'male', label: 'Masculino' },
+            { value: 'female', label: 'Feminino' },
+            { value: 'other', label: 'Outro' },
+          ],
+        },
+        {
+          id: 'field-objective', label: 'Objetivo', value: s.objective,
+          type: 'select',
+          options: [
+            { value: '', label: 'Não informado' },
+            { value: 'emagrecimento', label: 'Emagrecimento' },
+            { value: 'hipertrofia', label: 'Hipertrofia' },
+            { value: 'condicionamento', label: 'Condicionamento' },
+            { value: 'saude', label: 'Saúde' },
+            { value: 'reabilitacao', label: 'Reabilitação' },
+          ],
+        },
+      ];
+
+      const container = document.getElementById('personal-fields');
+      container.innerHTML = fields.map(f => {
+        if (f.type === 'select') {
+          const opts = f.options.map(o =>
+            `<option value="${o.value}" ${o.value === (f.value||'') ? 'selected' : ''}>${o.label}</option>`
+          ).join('');
+          return `
+            <div>
+              <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">${f.label}</label>
+              <select id="${f.id}" class="editable-field border border-gray-100 bg-transparent">
+                ${opts}
+              </select>
+            </div>`;
+        }
+        return `
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">${f.label}</label>
+            <input type="${f.type}" id="${f.id}" class="editable-field border border-gray-100"
+                   value="${escHtml(f.value || '')}" />
+          </div>`;
+      }).join('');
+
+      // Saúde + notas
+      document.getElementById('field-health-notes').value   = s.health_notes   || '';
+      document.getElementById('field-internal-notes').value = s.internal_notes || '';
+
+      // Link de acesso
+      const accessUrl = s.access_url || `${window.API_BASE_URL}/api/students/public/${s.access_token}`;
+      document.getElementById('access-link-display').textContent = accessUrl;
+    }
+
+    // --- Salvar dados pessoais ---
+    async function savePersonalData() {
+      const btn = document.getElementById('save-personal-btn');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      const payload = {
+        name:       document.getElementById('field-name')?.value.trim(),
+        email:      document.getElementById('field-email')?.value.trim(),
+        phone:      document.getElementById('field-phone')?.value.trim(),
+        birth_date: document.getElementById('field-birth-date')?.value || null,
+        gender:     document.getElementById('field-gender')?.value || null,
+        objective:  document.getElementById('field-objective')?.value || null,
+      };
+
+      const result = await Api.patch(`/api/students/${studentId}`, payload);
+      btn.disabled = false;
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar alterações';
+
+      if (result.success) {
+        studentData = { ...studentData, ...result.data.student };
+        renderHeader(studentData);
+        Toast.success('Dados atualizados com sucesso!');
+      } else {
+        Toast.error(result.message || 'Erro ao salvar dados.');
+      }
+    }
+
+    // --- Salvar notas ---
+    async function saveNotes() {
+      const payload = {
+        health_notes:   document.getElementById('field-health-notes').value.trim() || null,
+        internal_notes: document.getElementById('field-internal-notes').value.trim() || null,
+      };
+
+      const result = await Api.patch(`/api/students/${studentId}`, payload);
+      if (result.success) {
+        Toast.success('Notas salvas!');
+      } else {
+        Toast.error(result.message || 'Erro ao salvar notas.');
+      }
+    }
+
+    // --- Copiar link ---
+    function copyLink() {
+      const url = document.getElementById('access-link-display').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        document.getElementById('copy-btn').innerHTML =
+          `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Copiado!`;
+        setTimeout(() => {
+          document.getElementById('copy-btn').innerHTML =
+            `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar`;
+        }, 2000);
+        Toast.success('Link copiado!');
+      });
+    }
+
+    // --- WhatsApp ---
+    function openWhatsApp() {
+      const phone = studentData?.phone;
+      if (!phone) { Toast.warning('Aluno sem telefone cadastrado.'); return; }
+      const num = phone.replace(/\D/g,'');
+      window.open(`https://wa.me/55${num}`, '_blank');
+    }
+
+    // --- Sistema de abas com hash na URL ---
+    let progressLoaded = false;
+    function switchTab(tabId) {
+      const validTabs = ['overview','workouts','progress','schedule','financial','messages'];
+      const id = validTabs.includes(tabId) ? tabId : 'overview';
+
+      document.querySelectorAll('.tab-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.tab === id);
+      });
+      document.querySelectorAll('.tab-content').forEach(c => {
+        c.classList.toggle('active', c.id === `tab-${id}`);
+      });
+
+      // Persiste no hash sem adicionar ao histórico
+      history.replaceState(null, '', `?id=${studentId}#${id}`);
+      lucide.createIcons();
+
+      // Carrega evolução na primeira vez que a aba é aberta
+      if (id === 'progress' && !progressLoaded) {
+        progressLoaded = true;
+        loadProgress();
+      }
+    }
+
+    function showError() {
+      document.getElementById('loading-state').classList.add('hidden');
+      document.getElementById('error-state').classList.remove('hidden');
+      document.getElementById('error-state').classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function escHtml(str = '') {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+    }
+
+    // ================================================================
+    //  MÓDULO 4 — Avaliações físicas
+    // ================================================================
+
+    let allAssessments = [];   // cache de avaliações carregadas
+    let photoSlots = [         // estado dos 4 slots de upload
+      { url: null, label: 'Frente' },
+      { url: null, label: 'Costas' },
+      { url: null, label: 'Lado D' },
+      { url: null, label: 'Lado E' },
+    ];
+    let chartWeight  = null;
+    let chartBodyFat = null;
+    let chartRadar   = null;
+
+    // --- Carregar aba Evolução ---
+    async function loadProgress() {
+      if (!studentId) return;
+
+      const result = await Api.get(`/api/assessments/progress/${studentId}`);
+      document.getElementById('progress-loading').style.display = 'none';
+
+      if (!result.success) {
+        document.getElementById('progress-empty').style.display = 'block';
+        return;
+      }
+
+      const { series, summary, count } = result.data;
+
+      // Carrega histórico completo para exibição na timeline e modal
+      const histResult = await Api.get('/api/assessments/', { student_id: studentId });
+      if (histResult.success) {
+        allAssessments = histResult.data.assessments || [];
+      }
+
+      if (count === 0) {
+        document.getElementById('progress-empty').style.display = 'block';
+        return;
+      }
+
+      // Resumo
+      if (summary) {
+        document.getElementById('progress-summary-text').textContent = summary;
+        document.getElementById('progress-summary').style.display = 'block';
+      }
+
+      // Gráficos
+      document.getElementById('progress-charts').style.display = 'block';
+      renderWeightChart(series);
+      renderBodyFatChart(series);
+      renderRadarChart(series);
+
+      // Fotos
+      renderPhotosGrid(allAssessments);
+
+      // Timeline
+      renderAssessmentsTimeline(allAssessments);
+
+      lucide.createIcons();
+    }
+
+    // --- Gráfico de peso ---
+    function renderWeightChart(series) {
+      const labels = series.map(s => formatDate(s.date));
+      const data   = series.map(s => s.weight);
+      if (data.every(v => v == null)) return;
+
+      const ctx = document.getElementById('chart-weight').getContext('2d');
+      if (chartWeight) chartWeight.destroy();
+      chartWeight = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Peso (kg)',
+            data,
+            borderColor: '#22C55E',
+            backgroundColor: 'rgba(34,197,94,0.08)',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#22C55E',
+            pointRadius: 4,
+            tension: 0.35,
+            fill: true,
+          }],
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+            y: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+          },
+        },
+      });
+    }
+
+    // --- Gráfico de gordura corporal ---
+    function renderBodyFatChart(series) {
+      const labels = series.map(s => formatDate(s.date));
+      const data   = series.map(s => s.body_fat);
+      if (data.every(v => v == null)) return;
+
+      const ctx = document.getElementById('chart-bodyfat').getContext('2d');
+      if (chartBodyFat) chartBodyFat.destroy();
+      chartBodyFat = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: '% Gordura',
+            data,
+            borderColor: '#F97316',
+            backgroundColor: 'rgba(249,115,22,0.08)',
+            borderWidth: 2.5,
+            pointBackgroundColor: '#F97316',
+            pointRadius: 4,
+            tension: 0.35,
+            fill: true,
+          }],
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+            y: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+          },
+        },
+      });
+    }
+
+    // --- Gráfico radar: 1ª vs última avaliação ---
+    function renderRadarChart(series) {
+      if (series.length < 2) return;
+
+      const first = series[0];
+      const last  = series[series.length - 1];
+      const labels = ['Cintura', 'Quadril', 'Abdômen', 'Braço D', 'Coxa D', 'Panturrilha D'];
+      const keys   = ['waist', 'hip', 'abdomen', 'right_arm', 'right_thigh', 'right_calf'];
+
+      const d1 = keys.map(k => first[k]);
+      const d2 = keys.map(k => last[k]);
+      if (d1.every(v => v == null) || d2.every(v => v == null)) return;
+
+      document.getElementById('radar-card').style.display = 'block';
+      const ctx = document.getElementById('chart-radar').getContext('2d');
+      if (chartRadar) chartRadar.destroy();
+      chartRadar = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: `1ª (${formatDate(first.date)})`,
+              data: d1,
+              borderColor: '#94A3B8',
+              backgroundColor: 'rgba(148,163,184,0.15)',
+              borderWidth: 2, pointRadius: 3,
+            },
+            {
+              label: `Última (${formatDate(last.date)})`,
+              data: d2,
+              borderColor: '#22C55E',
+              backgroundColor: 'rgba(34,197,94,0.15)',
+              borderWidth: 2, pointRadius: 3,
+            },
+          ],
+        },
+        options: {
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#64748B', font: { size: 11 }, boxWidth: 12 },
+            },
+          },
+          scales: {
+            r: {
+              grid: { color: '#F1F5F9' },
+              ticks: { color: '#94A3B8', font: { size: 10 }, backdropColor: 'transparent' },
+              pointLabels: { color: '#64748B', font: { size: 11 } },
+            },
+          },
+        },
+      });
+    }
+
+    // --- Grid de fotos ---
+    const PHOTO_LABELS = ['Frente', 'Costas', 'Lado D', 'Lado E'];
+
+    function renderPhotosGrid(assessments) {
+      // Filtra apenas avaliações que têm pelo menos uma foto
+      const withPhotos = assessments.filter(a => (a.photo_urls || []).length > 0);
+      if (!withPhotos.length) return;
+
+      document.getElementById('progress-photos').style.display = 'block';
+      const grid = document.getElementById('photos-grid');
+
+      // Exibe a primeira foto de cada avaliação como capa
+      grid.innerHTML = withPhotos.map((a, i) => {
+        const url = a.photo_urls[0];
+        return `
+          <div class="photo-card" onclick="openCompareModal(${i})">
+            <img class="photo-thumb"
+                 src="${window.API_BASE_URL}/api/uploads/files/${escHtml(url)}"
+                 alt="${formatDate(a.date)}" />
+            <div class="photo-card-label">${formatDate(a.date)}</div>
+          </div>`;
+      }).join('');
+
+      // Guarda as avaliações completas para o comparador
+      window._compareAssessments = withPhotos;
+    }
+
+    // --- Timeline de avaliações ---
+    function renderAssessmentsTimeline(assessments) {
+      if (!assessments.length) return;
+      document.getElementById('assessments-timeline').style.display = 'block';
+      const container = document.getElementById('assessments-list');
+
+      container.innerHTML = assessments.map(a => {
+        const metrics = [];
+        if (a.weight)      metrics.push(`<span><b>${a.weight}</b> kg`);
+        if (a.body_fat)    metrics.push(`<b>${a.body_fat}</b>% gordura`);
+        if (a.bmi)         metrics.push(`IMC <b>${a.bmi}</b>`);
+        if (a.waist)       metrics.push(`Cintura <b>${a.waist}</b> cm`);
+
+        return `
+          <div class="info-card" style="padding:16px">
+            <div class="flex items-center justify-between gap-3">
+              <div>
+                <div class="text-sm font-bold text-gray-800">${formatDate(a.date)}</div>
+                <div class="text-xs text-gray-400 mt-1">${metrics.join(' &nbsp;·&nbsp; ') || 'Sem medidas registradas'}</div>
+                ${a.notes ? `<div class="text-xs text-gray-500 mt-1 italic">${escHtml(a.notes)}</div>` : ''}
+              </div>
+              <div class="flex gap-2 flex-shrink-0">
+                <button onclick="openAssessmentModal('${a.id}')"
+                  class="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-500 transition-colors border border-gray-100">
+                  <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                </button>
+                <button onclick="deleteAssessment('${a.id}')"
+                  class="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition-colors border border-red-100">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // ---------------------------------------------------------------- #
+    //  Modal de avaliação                                               #
+    // ---------------------------------------------------------------- #
+
+    function openAssessmentModal(assessmentId = null) {
+      // Reseta slots de foto
+      photoSlots = [
+        { url: null, label: 'Frente' },
+        { url: null, label: 'Costas' },
+        { url: null, label: 'Lado D' },
+        { url: null, label: 'Lado E' },
+      ];
+      renderPhotoSlots();
+
+      // Preenche com avaliação anterior para referência
+      const prev = allAssessments.length > 0 ? allAssessments[0] : null;
+      showPrevValues(prev);
+
+      if (assessmentId) {
+        // Modo edição
+        document.getElementById('assessment-modal-title').textContent = 'Editar avaliação';
+        document.getElementById('assessment-id-field').value = assessmentId;
+        const a = allAssessments.find(x => x.id === assessmentId);
+        if (a) fillAssessmentForm(a);
+      } else {
+        // Modo criação
+        document.getElementById('assessment-modal-title').textContent = 'Nova avaliação';
+        document.getElementById('assessment-id-field').value = '';
+        clearAssessmentForm();
+      }
+
+      document.getElementById('assessment-modal').style.display = 'flex';
+      lucide.createIcons();
+    }
+
+    function closeAssessmentModal() {
+      document.getElementById('assessment-modal').style.display = 'none';
+    }
+
+    function closeAssessmentModalOnBg(e) {
+      if (e.target === document.getElementById('assessment-modal')) closeAssessmentModal();
+    }
+
+    function clearAssessmentForm() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('af-date').value         = today;
+      const fields = ['weight','height','body-fat','muscle-mass','chest','waist','hip',
+                      'abdomen','right-arm','left-arm','right-thigh','left-thigh','right-calf','left-calf','notes'];
+      fields.forEach(f => {
+        const el = document.getElementById(`af-${f}`);
+        if (el) el.value = '';
+      });
+      document.getElementById('af-bmi-preview').value = '';
+    }
+
+    function fillAssessmentForm(a) {
+      document.getElementById('af-date').value          = a.date || '';
+      document.getElementById('af-weight').value        = a.weight ?? '';
+      document.getElementById('af-height').value        = a.height ?? '';
+      document.getElementById('af-body-fat').value      = a.body_fat ?? '';
+      document.getElementById('af-muscle-mass').value   = a.muscle_mass ?? '';
+      document.getElementById('af-chest').value         = a.chest ?? '';
+      document.getElementById('af-waist').value         = a.waist ?? '';
+      document.getElementById('af-hip').value           = a.hip ?? '';
+      document.getElementById('af-abdomen').value       = a.abdomen ?? '';
+      document.getElementById('af-right-arm').value     = a.right_arm ?? '';
+      document.getElementById('af-left-arm').value      = a.left_arm ?? '';
+      document.getElementById('af-right-thigh').value   = a.right_thigh ?? '';
+      document.getElementById('af-left-thigh').value    = a.left_thigh ?? '';
+      document.getElementById('af-right-calf').value    = a.right_calf ?? '';
+      document.getElementById('af-left-calf').value     = a.left_calf ?? '';
+      document.getElementById('af-notes').value         = a.notes ?? '';
+      updateBMIPreview();
+
+      // Carrega fotos salvas nos slots
+      const urls = a.photo_urls || [];
+      ['Frente','Costas','Lado D','Lado E'].forEach((label, i) => {
+        photoSlots[i] = { url: urls[i] || null, label };
+      });
+      renderPhotoSlots();
+    }
+
+    function showPrevValues(prev) {
+      if (!prev) return;
+      const map = {
+        'prev-weight':       prev.weight,
+        'prev-height':       prev.height,
+        'prev-body-fat':     prev.body_fat,
+        'prev-muscle-mass':  prev.muscle_mass,
+        'prev-chest':        prev.chest,
+        'prev-waist':        prev.waist,
+        'prev-hip':          prev.hip,
+        'prev-abdomen':      prev.abdomen,
+        'prev-right-arm':    prev.right_arm,
+        'prev-left-arm':     prev.left_arm,
+        'prev-right-thigh':  prev.right_thigh,
+        'prev-left-thigh':   prev.left_thigh,
+        'prev-right-calf':   prev.right_calf,
+        'prev-left-calf':    prev.left_calf,
+      };
+      const prevDate = formatDate(prev.date);
+      Object.entries(map).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val != null ? `${val} em ${prevDate}` : '';
+      });
+    }
+
+    function updateBMIPreview() {
+      const w = parseFloat(document.getElementById('af-weight').value);
+      const h = parseFloat(document.getElementById('af-height').value);
+      const bmiEl = document.getElementById('af-bmi-preview');
+      if (w > 0 && h > 0) {
+        const hm = h / 100;
+        bmiEl.value = (w / (hm * hm)).toFixed(1);
+      } else {
+        bmiEl.value = '';
+      }
+    }
+
+    // --- Salvar avaliação ---
+    async function saveAssessment() {
+      const btn = document.getElementById('assessment-save-btn');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      const id       = document.getElementById('assessment-id-field').value;
+      const dateVal  = document.getElementById('af-date').value;
+      if (!dateVal) {
+        Toast.error('Data da avaliação é obrigatória.');
+        btn.disabled = false; btn.textContent = 'Salvar avaliação';
+        return;
+      }
+
+      const payload = {
+        student_id:    studentId,
+        date:          dateVal,
+        weight:        parseFloatOrNull('af-weight'),
+        height:        parseFloatOrNull('af-height'),
+        body_fat:      parseFloatOrNull('af-body-fat'),
+        muscle_mass:   parseFloatOrNull('af-muscle-mass'),
+        chest:         parseFloatOrNull('af-chest'),
+        waist:         parseFloatOrNull('af-waist'),
+        hip:           parseFloatOrNull('af-hip'),
+        abdomen:       parseFloatOrNull('af-abdomen'),
+        right_arm:     parseFloatOrNull('af-right-arm'),
+        left_arm:      parseFloatOrNull('af-left-arm'),
+        right_thigh:   parseFloatOrNull('af-right-thigh'),
+        left_thigh:    parseFloatOrNull('af-left-thigh'),
+        right_calf:    parseFloatOrNull('af-right-calf'),
+        left_calf:     parseFloatOrNull('af-left-calf'),
+        notes:         document.getElementById('af-notes').value.trim() || null,
+        photo_urls:    photoSlots.map(s => s.url).filter(Boolean),
+      };
+
+      let result;
+      if (id) {
+        result = await Api.patch(`/api/assessments/${id}`, payload);
+      } else {
+        result = await Api.post('/api/assessments/', payload);
+      }
+
+      btn.disabled = false; btn.textContent = 'Salvar avaliação';
+
+      if (result.success) {
+        Toast.success(id ? 'Avaliação atualizada!' : 'Avaliação registrada!');
+        closeAssessmentModal();
+        // Recarrega aba
+        document.getElementById('progress-loading').style.display = 'block';
+        document.getElementById('progress-charts').style.display = 'none';
+        document.getElementById('progress-empty').style.display = 'none';
+        document.getElementById('progress-photos').style.display = 'none';
+        document.getElementById('assessments-timeline').style.display = 'none';
+        document.getElementById('progress-summary').style.display = 'none';
+        loadProgress();
+      } else {
+        Toast.error(result.message || 'Erro ao salvar avaliação.');
+      }
+    }
+
+    // --- Excluir avaliação ---
+    async function deleteAssessment(id) {
+      if (!confirm('Excluir esta avaliação? Essa ação não pode ser desfeita.')) return;
+      const result = await Api.del(`/api/assessments/${id}`);
+      if (result.success) {
+        Toast.success('Avaliação excluída.');
+        loadProgress();
+      } else {
+        Toast.error(result.message || 'Erro ao excluir.');
+      }
+    }
+
+    // ---------------------------------------------------------------- #
+    //  Upload de fotos                                                  #
+    // ---------------------------------------------------------------- #
+
+    function renderPhotoSlots() {
+      const grid = document.getElementById('photo-upload-grid');
+      grid.innerHTML = photoSlots.map((slot, i) => `
+        <div class="photo-upload-slot ${slot.url ? 'has-photo' : ''}"
+             onclick="triggerPhotoUpload(${i})" id="photo-slot-${i}">
+          ${slot.url
+            ? `<img src="${window.API_BASE_URL}/api/uploads/files/${escHtml(slot.url)}" alt="${slot.label}" />
+               <button class="photo-remove-btn" onclick="removePhoto(event,${i})">✕</button>`
+            : `<i data-lucide="camera" class="w-5 h-5 text-gray-300"></i>`
+          }
+          <span class="slot-label">${slot.label}</span>
+        </div>
+        <input type="file" id="photo-input-${i}" accept="image/jpeg,image/png,image/webp"
+               style="display:none" onchange="handlePhotoSelected(${i}, this)" />
+      `).join('');
+      lucide.createIcons();
+    }
+
+    function triggerPhotoUpload(i) {
+      document.getElementById(`photo-input-${i}`)?.click();
+    }
+
+    function removePhoto(event, i) {
+      event.stopPropagation();
+      photoSlots[i].url = null;
+      renderPhotoSlots();
+    }
+
+    async function handlePhotoSelected(i, input) {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      const slot = document.getElementById(`photo-slot-${i}`);
+      slot.innerHTML = `<div style="font-size:11px;color:#94A3B8">Enviando...</div>`;
+
+      const formData = new FormData();
+      formData.append('photo', file);
+
+      const token = sessionStorage.getItem('access_token');
+      try {
+        const res = await fetch(`${window.API_BASE_URL}/api/uploads/assessment-photo`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
+        const result = await res.json();
+        if (result.success) {
+          photoSlots[i].url = result.data.url;
+          renderPhotoSlots();
+        } else {
+          Toast.error(result.message || 'Erro no upload.');
+          renderPhotoSlots();
+        }
+      } catch (e) {
+        Toast.error('Erro de conexão no upload.');
+        renderPhotoSlots();
+      }
+    }
+
+    // ---------------------------------------------------------------- #
+    //  Modal de comparação de fotos                                     #
+    // ---------------------------------------------------------------- #
+
+    function openCompareModal(defaultIdx = 0) {
+      const assessments = window._compareAssessments || [];
+      if (assessments.length < 1) return;
+
+      const selA = document.getElementById('compare-sel-a');
+      const selB = document.getElementById('compare-sel-b');
+      const opts = assessments.map((a, i) =>
+        `<option value="${i}">${formatDate(a.date)}</option>`
+      ).join('');
+      selA.innerHTML = opts;
+      selB.innerHTML = opts;
+      selA.value = defaultIdx;
+      selB.value = Math.min(defaultIdx + 1, assessments.length - 1);
+
+      // Pré-seleciona as visões disponíveis em comum
+      updateViewOptions();
+
+      document.getElementById('compare-modal').style.display = 'flex';
+      renderCompare();
+      initCompareSlider();
+    }
+
+    function closeCompareModal() {
+      document.getElementById('compare-modal').style.display = 'none';
+    }
+
+    function updateViewOptions() {
+      // Habilita apenas as visões que existem em pelo menos uma das avaliações selecionadas
+      const assessments = window._compareAssessments || [];
+      const idxA = parseInt(document.getElementById('compare-sel-a').value);
+      const idxB = parseInt(document.getElementById('compare-sel-b').value);
+      const asmA = assessments[idxA];
+      const asmB = assessments[idxB];
+
+      const selView = document.getElementById('compare-sel-view');
+      const currentView = parseInt(selView.value);
+      selView.innerHTML = PHOTO_LABELS.map((label, i) => {
+        const hasA = asmA?.photo_urls?.[i];
+        const hasB = asmB?.photo_urls?.[i];
+        const disabled = !hasA && !hasB;
+        return `<option value="${i}" ${disabled ? 'disabled' : ''}>${label}${disabled ? ' —' : ''}</option>`;
+      }).join('');
+
+      // Mantém seleção atual se ainda válida, senão pula para a primeira disponível
+      const opt = selView.options[currentView];
+      if (opt && !opt.disabled) {
+        selView.value = currentView;
+      } else {
+        const first = [...selView.options].find(o => !o.disabled);
+        if (first) selView.value = first.value;
+      }
+    }
+
+    function renderCompare() {
+      const assessments = window._compareAssessments || [];
+      const idxA    = parseInt(document.getElementById('compare-sel-a').value);
+      const idxB    = parseInt(document.getElementById('compare-sel-b').value);
+      const viewIdx = parseInt(document.getElementById('compare-sel-view').value);
+      const asmA    = assessments[idxA];
+      const asmB    = assessments[idxB];
+      if (!asmA || !asmB) return;
+
+      updateViewOptions();
+
+      const base        = `${window.API_BASE_URL}/api/uploads/files/`;
+      const placeholder = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="400"><rect fill="%231E293B" width="300" height="400"/><text x="50%" y="50%" fill="%2364748B" font-size="14" text-anchor="middle" dominant-baseline="middle">Sem foto</text></svg>';
+
+      const urlA = asmA.photo_urls?.[viewIdx];
+      const urlB = asmB.photo_urls?.[viewIdx];
+      document.getElementById('compare-img-a').src = urlA ? base + urlA : placeholder;
+      document.getElementById('compare-img-b').src = urlB ? base + urlB : placeholder;
+      document.getElementById('th-a').textContent = formatDate(asmA.date);
+      document.getElementById('th-b').textContent = formatDate(asmB.date);
+
+      // Reseta handle para 50%
+      const handle = document.getElementById('compare-handle');
+      const clipDiv = document.getElementById('compare-b-clip');
+      handle.style.left = '50%';
+      clipDiv.style.clipPath = 'inset(0 50% 0 0)';
+
+      // Tabela de deltas
+      renderDeltaTable(asmA, asmB);
+    }
+
+    function renderDeltaTable(asmA, asmB) {
+      if (!asmA || !asmB) return;
+      const rows = [
+        { label: 'Peso (kg)',         key: 'weight',       invert: true },
+        { label: '% Gordura',         key: 'body_fat',     invert: true },
+        { label: 'Massa muscular (kg)',key: 'muscle_mass',  invert: false },
+        { label: 'IMC',               key: 'bmi',          invert: true },
+        { label: 'Cintura (cm)',       key: 'waist',        invert: true },
+        { label: 'Quadril (cm)',       key: 'hip',          invert: true },
+        { label: 'Abdômen (cm)',       key: 'abdomen',      invert: true },
+        { label: 'Braço D (cm)',       key: 'right_arm',    invert: false },
+        { label: 'Coxa D (cm)',        key: 'right_thigh',  invert: false },
+      ];
+      const tbody = document.getElementById('delta-tbody');
+      tbody.innerHTML = rows.map(r => {
+        const va = asmA[r.key], vb = asmB[r.key];
+        if (va == null && vb == null) return '';
+        const diff = (vb != null && va != null) ? +(vb - va).toFixed(1) : null;
+        let diffHtml = '—';
+        if (diff !== null) {
+          const isGood = r.invert ? diff < 0 : diff > 0;
+          const cls    = diff === 0 ? '' : (isGood ? 'delta-up' : 'delta-down');
+          const arrow  = diff > 0 ? '↑' : diff < 0 ? '↓' : '';
+          diffHtml = `<span class="${cls}">${arrow} ${Math.abs(diff)}</span>`;
+        }
+        return `<tr>
+          <td>${r.label}</td>
+          <td>${va ?? '—'}</td>
+          <td>${vb ?? '—'}</td>
+          <td>${diffHtml}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    function initCompareSlider() {
+      const wrap   = document.getElementById('compare-wrap');
+      const handle = document.getElementById('compare-handle');
+      const clip   = document.getElementById('compare-b-clip');
+      let dragging = false;
+
+      function setPos(x) {
+        const rect = wrap.getBoundingClientRect();
+        const pct  = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
+        handle.style.left = pct + '%';
+        clip.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+      }
+
+      handle.addEventListener('mousedown',  () => { dragging = true; });
+      document.addEventListener('mousemove', e => { if (dragging) setPos(e.clientX); });
+      document.addEventListener('mouseup',   () => { dragging = false; });
+
+      handle.addEventListener('touchstart',  e => { dragging = true; e.preventDefault(); }, { passive: false });
+      document.addEventListener('touchmove', e => { if (dragging) setPos(e.touches[0].clientX); }, { passive: true });
+      document.addEventListener('touchend',  () => { dragging = false; });
+    }
+
+    // ---------------------------------------------------------------- #
+    //  Helpers                                                          #
+    // ---------------------------------------------------------------- #
+
+    function parseFloatOrNull(id) {
+      const val = document.getElementById(id)?.value;
+      if (!val || val.trim() === '') return null;
+      const n = parseFloat(val);
+      return isNaN(n) ? null : n;
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    }
+
+    // --- Init ---
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!studentId) {
+        document.title = 'Perfil do Aluno — FitFlow Pro';
+        initLayout('Perfil do Aluno', [
+          { label: 'Alunos', href: '/frontend/trainer/index.html' },
+          { label: 'Perfil' },
+        ]);
+        showError();
+        return;
+      }
+
+      initLayout('Perfil do Aluno', [
+        { label: 'Alunos', href: '/frontend/trainer/index.html' },
+        { label: 'Carregando...' },
+      ]);
+
+      loadStudent();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Entrar — FitFlow Pro</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      --brand-primary: #22C55E;
+      --brand-dark: #15803D;
+      --brand-accent: #F97316;
+      --gray-50: #F8FAFC;
+      --gray-900: #0F172A;
+      --gray-500: #64748B;
+      --gray-200: #E2E8F0;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--gray-50);
+      min-height: 100vh;
+      margin: 0;
+    }
+
+    h1, h2, h3 {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    /* Input base */
+    .input-field {
+      width: 100%;
+      padding: 12px 16px 12px 44px;
+      border: 1.5px solid var(--gray-200);
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      color: var(--gray-900);
+      background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+    .input-field:focus {
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+    }
+    .input-field.error {
+      border-color: #EF4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    }
+    .input-field.success {
+      border-color: var(--brand-primary);
+    }
+
+    /* Wrapper de input com ícone */
+    .input-wrap {
+      position: relative;
+    }
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94A3B8;
+      pointer-events: none;
+      display: flex;
+    }
+    .input-toggle {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #94A3B8;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      display: flex;
+      align-items: center;
+    }
+    .input-toggle:hover { color: var(--gray-500); }
+
+    /* Mensagem de erro inline */
+    .field-error {
+      font-size: 12px;
+      color: #EF4444;
+      margin-top: 4px;
+      display: none;
+    }
+    .field-error.visible { display: block; }
+
+    /* Botão primário */
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: var(--brand-primary);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--brand-dark); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Spinner de loading */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Card central */
+    .auth-card {
+      background: #fff;
+      border-radius: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.06);
+      border: 1px solid var(--gray-200);
+    }
+
+    /* Divisor */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #94A3B8;
+      font-size: 13px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--gray-200);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="min-h-screen flex">
+
+    <!-- Painel esquerdo — hero (apenas desktop) -->
+    <div class="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-500 to-green-700 p-12 flex-col justify-between relative overflow-hidden">
+      <!-- Círculos decorativos -->
+      <div class="absolute -top-20 -right-20 w-80 h-80 bg-white/10 rounded-full"></div>
+      <div class="absolute -bottom-32 -left-10 w-96 h-96 bg-white/5 rounded-full"></div>
+
+      <!-- Logo -->
+      <div class="flex items-center gap-3 relative z-10">
+        <div class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+          <i data-lucide="dumbbell" class="w-5 h-5 text-white"></i>
+        </div>
+        <span class="text-white font-bold text-xl" style="font-family:'Plus Jakarta Sans',sans-serif;">
+          FitFlow <strong>Pro</strong>
+        </span>
+      </div>
+
+      <!-- Conteúdo central -->
+      <div class="relative z-10">
+        <h2 class="text-4xl font-extrabold text-white leading-tight mb-4" style="font-family:'Plus Jakarta Sans',sans-serif;">
+          Gerencie seus alunos com<br/>
+          <span class="text-green-200">inteligência e eficiência</span>
+        </h2>
+        <p class="text-green-100 text-lg leading-relaxed max-w-md">
+          Treinos, avaliações, agendamentos e cobranças — tudo em um único lugar para personal trainers que querem crescer.
+        </p>
+
+        <!-- Stats -->
+        <div class="flex gap-8 mt-10">
+          <div>
+            <div class="text-3xl font-extrabold text-white" style="font-family:'Plus Jakarta Sans',sans-serif;">2.4k+</div>
+            <div class="text-green-200 text-sm mt-1">Trainers ativos</div>
+          </div>
+          <div>
+            <div class="text-3xl font-extrabold text-white" style="font-family:'Plus Jakarta Sans',sans-serif;">38k+</div>
+            <div class="text-green-200 text-sm mt-1">Alunos gerenciados</div>
+          </div>
+          <div>
+            <div class="text-3xl font-extrabold text-white" style="font-family:'Plus Jakarta Sans',sans-serif;">4.9★</div>
+            <div class="text-green-200 text-sm mt-1">Avaliação média</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Testemunho -->
+      <div class="relative z-10 bg-white/15 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
+        <p class="text-white text-sm leading-relaxed italic">
+          "O FitFlow Pro transformou minha gestão. Hoje atendo o dobro de alunos com metade do esforço administrativo."
+        </p>
+        <div class="flex items-center gap-3 mt-4">
+          <div class="w-9 h-9 rounded-full bg-green-300 flex items-center justify-content-center flex items-center justify-center text-green-800 font-bold text-sm">
+            RC
+          </div>
+          <div>
+            <div class="text-white text-sm font-semibold">Rafael Costa</div>
+            <div class="text-green-200 text-xs">Personal Trainer · São Paulo</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Painel direito — formulário -->
+    <div class="flex-1 flex items-center justify-center p-6 lg:p-12">
+      <div class="w-full max-w-md">
+
+        <!-- Logo mobile -->
+        <div class="flex items-center gap-3 mb-8 lg:hidden">
+          <div class="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center">
+            <i data-lucide="dumbbell" class="w-4 h-4 text-white"></i>
+          </div>
+          <span class="font-bold text-xl text-gray-900" style="font-family:'Plus Jakarta Sans',sans-serif;">
+            FitFlow <strong>Pro</strong>
+          </span>
+        </div>
+
+        <!-- Card -->
+        <div class="auth-card p-8">
+          <div class="mb-7">
+            <h1 class="text-2xl font-extrabold text-gray-900 mb-1">Bem-vindo de volta</h1>
+            <p class="text-gray-500 text-sm">Entre na sua conta para continuar</p>
+          </div>
+
+          <!-- Mensagem de erro global -->
+          <div id="form-error" class="hidden mb-5 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+            <i data-lucide="circle-x" class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5"></i>
+            <p id="form-error-text" class="text-red-700 text-sm"></p>
+          </div>
+
+          <form id="login-form" novalidate>
+            <!-- E-mail -->
+            <div class="mb-4">
+              <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+                E-mail
+              </label>
+              <div class="input-wrap">
+                <span class="input-icon">
+                  <i data-lucide="mail" class="w-4 h-4"></i>
+                </span>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  class="input-field"
+                  placeholder="seu@email.com"
+                  autocomplete="email"
+                  required
+                />
+              </div>
+              <span class="field-error" id="email-error">Informe um e-mail válido.</span>
+            </div>
+
+            <!-- Senha -->
+            <div class="mb-6">
+              <div class="flex items-center justify-between mb-2">
+                <label for="password" class="block text-sm font-semibold text-gray-700">
+                  Senha
+                </label>
+                <a href="/frontend/public/forgot-password.html" class="text-sm text-green-600 hover:text-green-700 font-medium">
+                  Esqueci a senha
+                </a>
+              </div>
+              <div class="input-wrap">
+                <span class="input-icon">
+                  <i data-lucide="lock" class="w-4 h-4"></i>
+                </span>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  class="input-field"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                  required
+                />
+                <button type="button" class="input-toggle" id="toggle-password" aria-label="Mostrar/ocultar senha">
+                  <i data-lucide="eye" class="w-4 h-4" id="eye-icon"></i>
+                </button>
+              </div>
+              <span class="field-error" id="password-error">Informe sua senha.</span>
+            </div>
+
+            <!-- Botão -->
+            <button type="submit" class="btn-primary" id="submit-btn">
+              <span id="btn-text">Entrar</span>
+              <span id="btn-spinner" class="spinner hidden"></span>
+            </button>
+          </form>
+        </div>
+
+        <!-- Link para cadastro -->
+        <p class="text-center text-sm text-gray-500 mt-6">
+          Ainda não tem conta?
+          <a href="/frontend/public/register.html" class="text-green-600 font-semibold hover:text-green-700">
+            Criar conta grátis
+          </a>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- URL da API (configure conforme o ambiente) -->
+  <script>window.API_BASE_URL = "http://localhost:5000";</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+
+  <script>
+    // Inicializa ícones Lucide
+    lucide.createIcons();
+
+    // Redireciona se já estiver logado
+    if (Auth.isLoggedIn()) {
+      const user = Auth.getUser();
+      window.location.href = user?.role === 'trainer'
+        ? '/frontend/trainer/index.html'
+        : '/frontend/student/index.html';
+    }
+
+    const form = document.getElementById('login-form');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const submitBtn = document.getElementById('submit-btn');
+    const btnText = document.getElementById('btn-text');
+    const btnSpinner = document.getElementById('btn-spinner');
+    const formError = document.getElementById('form-error');
+    const formErrorText = document.getElementById('form-error-text');
+
+    // Toggle de visibilidade da senha
+    document.getElementById('toggle-password').addEventListener('click', () => {
+      const isPassword = passwordInput.type === 'password';
+      passwordInput.type = isPassword ? 'text' : 'password';
+      const icon = document.getElementById('eye-icon');
+      icon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+      lucide.createIcons();
+    });
+
+    // Valida campo individual
+    function validateField(input, errorId, validator) {
+      const errorEl = document.getElementById(errorId);
+      const isValid = validator(input.value);
+      input.classList.toggle('error', !isValid);
+      errorEl.classList.toggle('visible', !isValid);
+      return isValid;
+    }
+
+    // Validação em tempo real ao sair do campo
+    emailInput.addEventListener('blur', () => {
+      validateField(emailInput, 'email-error', (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()));
+    });
+    passwordInput.addEventListener('blur', () => {
+      validateField(passwordInput, 'password-error', (v) => v.length > 0);
+    });
+
+    // Remove erro ao digitar
+    emailInput.addEventListener('input', () => {
+      emailInput.classList.remove('error');
+      document.getElementById('email-error').classList.remove('visible');
+      hideFormError();
+    });
+    passwordInput.addEventListener('input', () => {
+      passwordInput.classList.remove('error');
+      document.getElementById('password-error').classList.remove('visible');
+      hideFormError();
+    });
+
+    function showFormError(msg) {
+      formErrorText.textContent = msg;
+      formError.classList.remove('hidden');
+      formError.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function hideFormError() {
+      formError.classList.add('hidden');
+      formError.classList.remove('flex');
+    }
+
+    function setLoading(loading) {
+      submitBtn.disabled = loading;
+      btnText.textContent = loading ? 'Entrando...' : 'Entrar';
+      btnSpinner.classList.toggle('hidden', !loading);
+    }
+
+    // Submit do formulário
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideFormError();
+
+      const emailValid = validateField(
+        emailInput, 'email-error',
+        (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+      );
+      const passwordValid = validateField(
+        passwordInput, 'password-error',
+        (v) => v.length > 0
+      );
+
+      if (!emailValid || !passwordValid) return;
+
+      setLoading(true);
+
+      const result = await Auth.login(
+        emailInput.value.trim().toLowerCase(),
+        passwordInput.value
+      );
+
+      // Auth.login já redireciona em caso de sucesso.
+      // Só chega aqui se falhar.
+      if (!result.success) {
+        setLoading(false);
+        showFormError(result.message || 'Erro ao fazer login. Tente novamente.');
+        passwordInput.classList.add('error');
+      }
+    });
+  </script>
+</body>
+</html>

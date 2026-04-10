@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Novo Aluno — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
+    h1,h2,h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    .input-field {
+      width: 100%; padding: 11px 14px 11px 40px;
+      border: 1.5px solid #E2E8F0; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 14px; color: #0F172A;
+      background: #fff; transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+    }
+    .input-field.no-icon { padding-left: 14px; }
+    .input-field:focus { border-color: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+    .input-field.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.08); }
+    .input-field.valid { border-color: #22C55E; }
+    .input-icon {
+      position: absolute; left: 13px; top: 50%; transform: translateY(-50%);
+      color: #94A3B8; pointer-events: none; display: flex;
+    }
+    .field-error { font-size: 12px; color: #EF4444; margin-top: 4px; display: none; }
+    .field-error.visible { display: block; }
+
+    /* Step indicator */
+    .step-dot {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; font-family: 'Plus Jakarta Sans', sans-serif;
+      transition: all 0.25s;
+    }
+    .step-dot.active   { background: #22C55E; color: #fff; }
+    .step-dot.done     { background: #22C55E; color: #fff; }
+    .step-dot.pending  { background: #F1F5F9; color: #94A3B8; }
+    .step-line { flex: 1; height: 2px; background: #E2E8F0; transition: background 0.25s; }
+    .step-line.done    { background: #22C55E; }
+
+    /* Botão primário */
+    .btn-primary {
+      padding: 12px 24px; background: #22C55E; color: #fff;
+      border: none; border-radius: 12px; font-weight: 700; font-size: 14px;
+      cursor: pointer; transition: background 0.2s, opacity 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:hover { background: #15803D; }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-outline {
+      padding: 12px 24px; background: transparent; color: #64748B;
+      border: 1.5px solid #E2E8F0; border-radius: 12px;
+      font-weight: 600; font-size: 14px; cursor: pointer;
+      transition: background 0.2s; display: flex; align-items: center; gap: 8px;
+    }
+    .btn-outline:hover { background: #F8FAFC; }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Avatar upload area */
+    .avatar-upload {
+      width: 80px; height: 80px; border-radius: 50%;
+      border: 2px dashed #E2E8F0; background: #F8FAFC;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.2s; position: relative; overflow: hidden;
+    }
+    .avatar-upload:hover { border-color: #22C55E; background: #F0FDF4; }
+    .avatar-upload img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
+
+    /* Success state */
+    #success-state { display: none; }
+    .success-icon-wrap {
+      width: 72px; height: 72px; border-radius: 50%; background: #F0FDF4;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .copy-link-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 12px 16px; background: #F0FDF4; border: 1.5px solid #BBF7D0;
+      border-radius: 12px; cursor: pointer; width: 100%;
+      transition: background 0.15s; font-size: 13px;
+    }
+    .copy-link-btn:hover { background: #DCFCE7; }
+    .link-text {
+      flex: 1; font-family: 'JetBrains Mono', monospace; font-size: 12px;
+      color: #15803D; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="main-content" class="min-h-screen">
+    <div class="max-w-2xl mx-auto px-4 pb-12">
+
+      <!-- Step indicator -->
+      <div class="flex items-center mb-8 mt-2" id="step-indicator">
+        <!-- Step 1 -->
+        <div class="flex flex-col items-center gap-1">
+          <div class="step-dot active" id="dot-1">1</div>
+          <span class="text-xs font-medium text-gray-500" id="label-1">Dados pessoais</span>
+        </div>
+        <div class="step-line mx-3" id="line-1"></div>
+        <!-- Step 2 -->
+        <div class="flex flex-col items-center gap-1">
+          <div class="step-dot pending" id="dot-2">2</div>
+          <span class="text-xs font-medium text-gray-400" id="label-2">Contrato</span>
+        </div>
+      </div>
+
+      <!-- Card do formulário -->
+      <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 lg:p-8">
+
+        <!-- ETAPA 1 -->
+        <div id="step-1">
+          <h2 class="text-lg font-bold text-gray-900 mb-1">Dados pessoais</h2>
+          <p class="text-sm text-gray-400 mb-6">Informações básicas do seu aluno.</p>
+
+          <!-- Avatar -->
+          <div class="flex items-center gap-4 mb-6">
+            <div class="avatar-upload" id="avatar-zone" onclick="document.getElementById('avatar-file').click()">
+              <img id="avatar-preview" src="" alt="" class="hidden" />
+              <span id="avatar-placeholder" class="flex flex-col items-center">
+                <i data-lucide="camera" class="w-5 h-5 text-gray-400 mb-1"></i>
+                <span class="text-xs text-gray-400">Foto</span>
+              </span>
+            </div>
+            <input type="file" id="avatar-file" accept="image/*" class="hidden" />
+            <div>
+              <p class="text-sm font-medium text-gray-700">Foto do aluno</p>
+              <p class="text-xs text-gray-400 mt-0.5">Opcional · JPG, PNG até 2MB</p>
+            </div>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Nome -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                Nome completo <span class="text-red-400">*</span>
+              </label>
+              <div class="relative">
+                <span class="input-icon"><i data-lucide="user" class="w-4 h-4"></i></span>
+                <input type="text" id="s-name" class="input-field" placeholder="Nome e sobrenome" />
+              </div>
+              <span class="field-error" id="err-name">Informe o nome completo.</span>
+            </div>
+
+            <!-- E-mail -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                E-mail <span class="text-red-400">*</span>
+              </label>
+              <div class="relative">
+                <span class="input-icon"><i data-lucide="mail" class="w-4 h-4"></i></span>
+                <input type="email" id="s-email" class="input-field" placeholder="aluno@email.com" />
+              </div>
+              <span class="field-error" id="err-email">Informe um e-mail válido.</span>
+            </div>
+
+            <!-- Telefone + Nascimento -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Telefone / WhatsApp</label>
+                <div class="relative">
+                  <span class="input-icon"><i data-lucide="smartphone" class="w-4 h-4"></i></span>
+                  <input type="tel" id="s-phone" class="input-field" placeholder="(11) 99999-9999" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Data de nascimento</label>
+                <div class="relative">
+                  <span class="input-icon"><i data-lucide="calendar" class="w-4 h-4"></i></span>
+                  <input type="date" id="s-birth-date" class="input-field" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Sexo + Objetivo -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Sexo</label>
+                <select id="s-gender" class="input-field no-icon">
+                  <option value="">Selecionar</option>
+                  <option value="male">Masculino</option>
+                  <option value="female">Feminino</option>
+                  <option value="other">Outro</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Objetivo principal</label>
+                <select id="s-objective" class="input-field no-icon">
+                  <option value="">Selecionar</option>
+                  <option value="emagrecimento">Emagrecimento</option>
+                  <option value="hipertrofia">Hipertrofia</option>
+                  <option value="condicionamento">Condicionamento</option>
+                  <option value="saude">Saúde</option>
+                  <option value="reabilitacao">Reabilitação</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Observações de saúde -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Observações de saúde</label>
+              <textarea id="s-health-notes" rows="3"
+                class="input-field no-icon resize-none"
+                placeholder="Lesões, medicamentos, restrições médicas..."></textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-end mt-8">
+            <button class="btn-primary" onclick="goToStep2()">
+              Próximo
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- ETAPA 2 -->
+        <div id="step-2" class="hidden">
+          <h2 class="text-lg font-bold text-gray-900 mb-1">Dados do contrato</h2>
+          <p class="text-sm text-gray-400 mb-6">Configure os detalhes financeiros e de modalidade.</p>
+
+          <div class="space-y-4">
+            <!-- Valor mensal + Dia vencimento -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mensalidade (R$)</label>
+                <div class="relative">
+                  <span class="input-icon text-sm font-bold text-gray-400">R$</span>
+                  <input type="number" id="s-monthly-fee" class="input-field"
+                    style="padding-left:36px" placeholder="0,00" min="0" step="0.01" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Dia de vencimento</label>
+                <div class="relative">
+                  <span class="input-icon"><i data-lucide="calendar-check" class="w-4 h-4"></i></span>
+                  <input type="number" id="s-payment-day" class="input-field"
+                    placeholder="Ex: 5" min="1" max="28" />
+                </div>
+                <span class="field-error" id="err-payment-day">Dia entre 1 e 28.</span>
+              </div>
+            </div>
+
+            <!-- Modalidade -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Modalidade</label>
+              <div class="grid grid-cols-3 gap-3" id="modality-options">
+                <label class="flex flex-col items-center gap-2 p-3 border-2 border-green-400 bg-green-50
+                              rounded-xl cursor-pointer transition-all has-[:checked]:border-green-500">
+                  <i data-lucide="dumbbell" class="w-5 h-5 text-green-600"></i>
+                  <span class="text-xs font-semibold text-gray-700">Presencial</span>
+                  <input type="radio" name="modality" value="presencial" class="hidden" checked />
+                </label>
+                <label class="flex flex-col items-center gap-2 p-3 border-2 border-gray-200
+                              rounded-xl cursor-pointer transition-all modality-opt">
+                  <i data-lucide="monitor" class="w-5 h-5 text-gray-400"></i>
+                  <span class="text-xs font-semibold text-gray-500">Online</span>
+                  <input type="radio" name="modality" value="online" class="hidden" />
+                </label>
+                <label class="flex flex-col items-center gap-2 p-3 border-2 border-gray-200
+                              rounded-xl cursor-pointer transition-all modality-opt">
+                  <i data-lucide="git-merge" class="w-5 h-5 text-gray-400"></i>
+                  <span class="text-xs font-semibold text-gray-500">Híbrido</span>
+                  <input type="radio" name="modality" value="hibrido" class="hidden" />
+                </label>
+              </div>
+            </div>
+
+            <!-- Notas internas -->
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                Notas internas
+                <span class="text-xs font-normal text-gray-400">(visível apenas para você)</span>
+              </label>
+              <textarea id="s-internal-notes" rows="3"
+                class="input-field no-icon resize-none"
+                placeholder="Observações particulares sobre o aluno, metas de longo prazo..."></textarea>
+            </div>
+          </div>
+
+          <div class="flex justify-between mt-8">
+            <button class="btn-outline" onclick="goToStep1()">
+              <i data-lucide="arrow-left" class="w-4 h-4"></i>
+              Voltar
+            </button>
+            <button class="btn-primary" id="submit-btn" onclick="submitStudent()">
+              <span id="btn-text">Cadastrar aluno</span>
+              <span id="btn-spinner" class="spinner hidden"></span>
+            </button>
+          </div>
+        </div>
+
+      </div><!-- /card -->
+
+      <!-- SUCCESS STATE -->
+      <div id="success-state" class="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 text-center">
+        <div class="success-icon-wrap">
+          <i data-lucide="check" class="w-8 h-8 text-green-500"></i>
+        </div>
+        <h2 class="text-xl font-bold text-gray-900 mb-2" id="success-title">Aluno cadastrado!</h2>
+        <p class="text-sm text-gray-500 mb-6" id="success-subtitle">
+          Envie o link de acesso para que ele acesse seus treinos e evolução.
+        </p>
+
+        <!-- Link de acesso -->
+        <div class="mb-6">
+          <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Link de acesso do aluno</p>
+          <button class="copy-link-btn" id="copy-link-btn" onclick="copyAccessLink()">
+            <i data-lucide="link" class="w-4 h-4 text-green-600 flex-shrink-0"></i>
+            <span class="link-text" id="access-link-text"></span>
+            <span class="flex-shrink-0 text-xs font-semibold text-green-700 flex items-center gap-1" id="copy-feedback">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+            </span>
+          </button>
+          <p class="text-xs text-gray-400 mt-2 text-left">
+            Este link é exclusivo do aluno e não requer senha. Guarde-o com segurança.
+          </p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <a id="view-profile-btn" href="#"
+             class="flex-1 flex items-center justify-center gap-2 py-3 bg-green-500 hover:bg-green-600
+                    text-white font-semibold rounded-xl transition-colors text-sm">
+            <i data-lucide="user" class="w-4 h-4"></i>
+            Ver perfil do aluno
+          </a>
+          <button onclick="resetForm()"
+                  class="flex-1 flex items-center justify-center gap-2 py-3 border border-gray-200
+                         hover:bg-gray-50 text-gray-700 font-semibold rounded-xl transition-colors text-sm">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            Cadastrar outro aluno
+          </button>
+        </div>
+      </div>
+
+    </div><!-- /max-w -->
+  </div>
+
+  <script>window.API_BASE_URL = "http://localhost:5000";</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
+
+  <script>
+    Auth.requireAuth('trainer');
+
+    let currentStep = 1;
+    let createdStudent = null;
+
+    // --- Avatar preview ---
+    document.getElementById('avatar-file').addEventListener('change', function() {
+      const file = this.files[0];
+      if (!file || file.size > 2 * 1024 * 1024) {
+        if (file) Toast.error('A foto deve ter no máximo 2MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const preview = document.getElementById('avatar-preview');
+        preview.src = e.target.result;
+        preview.classList.remove('hidden');
+        document.getElementById('avatar-placeholder').classList.add('hidden');
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // --- Modalidade: visual dos cards ---
+    document.querySelectorAll('input[name="modality"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('#modality-options label').forEach(lbl => {
+          const isSelected = lbl.querySelector('input').checked;
+          lbl.classList.toggle('border-green-400', isSelected);
+          lbl.classList.toggle('bg-green-50', isSelected);
+          lbl.classList.toggle('border-gray-200', !isSelected);
+          lbl.querySelector('i').style.color = isSelected ? '#16A34A' : '#94A3B8';
+          lbl.querySelector('span').classList.toggle('text-gray-700', isSelected);
+          lbl.querySelector('span').classList.toggle('text-gray-500', !isSelected);
+        });
+      });
+    });
+
+    // --- Máscara de telefone ---
+    document.getElementById('s-phone').addEventListener('input', function() {
+      let v = this.value.replace(/\D/g,'').slice(0,11);
+      if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+      else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+      else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+      else if (v.length > 0) v = `(${v}`;
+      this.value = v;
+    });
+
+    // --- Validação campo a campo ---
+    function validate(input, errorId, test, msg) {
+      const ok = test(input.value);
+      input.classList.toggle('error', !ok);
+      input.classList.toggle('valid', ok && input.value !== '');
+      const el = document.getElementById(errorId);
+      if (el) { el.textContent = msg; el.classList.toggle('visible', !ok); }
+      return ok;
+    }
+
+    document.getElementById('s-name').addEventListener('blur', function() {
+      validate(this, 'err-name', v => v.trim().split(/\s+/).length >= 2, 'Informe nome e sobrenome.');
+    });
+    document.getElementById('s-email').addEventListener('blur', function() {
+      validate(this, 'err-email', v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()), 'Informe um e-mail válido.');
+    });
+
+    // --- Navegação entre etapas ---
+    function goToStep2() {
+      const nameOk  = validate(document.getElementById('s-name'), 'err-name',
+        v => v.trim().split(/\s+/).length >= 2, 'Informe nome e sobrenome.');
+      const emailOk = validate(document.getElementById('s-email'), 'err-email',
+        v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()), 'Informe um e-mail válido.');
+
+      if (!nameOk || !emailOk) return;
+
+      currentStep = 2;
+      document.getElementById('step-1').classList.add('hidden');
+      document.getElementById('step-2').classList.remove('hidden');
+      updateStepIndicator();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function goToStep1() {
+      currentStep = 1;
+      document.getElementById('step-1').classList.remove('hidden');
+      document.getElementById('step-2').classList.add('hidden');
+      updateStepIndicator();
+    }
+
+    function updateStepIndicator() {
+      const dot1 = document.getElementById('dot-1');
+      const dot2 = document.getElementById('dot-2');
+      const line1 = document.getElementById('line-1');
+      const lbl1 = document.getElementById('label-1');
+      const lbl2 = document.getElementById('label-2');
+
+      if (currentStep === 1) {
+        dot1.className  = 'step-dot active';
+        dot2.className  = 'step-dot pending';
+        line1.className = 'step-line mx-3';
+        lbl1.className  = 'text-xs font-semibold text-gray-700';
+        lbl2.className  = 'text-xs font-medium text-gray-400';
+      } else {
+        dot1.className  = 'step-dot done';
+        dot1.innerHTML  = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+        dot2.className  = 'step-dot active';
+        dot2.textContent = '2';
+        line1.className = 'step-line done mx-3';
+        lbl1.className  = 'text-xs font-medium text-gray-400';
+        lbl2.className  = 'text-xs font-semibold text-gray-700';
+      }
+    }
+
+    // --- Submit ---
+    async function submitStudent() {
+      const paymentDay = document.getElementById('s-payment-day').value;
+      if (paymentDay) {
+        const pd = parseInt(paymentDay);
+        if (isNaN(pd) || pd < 1 || pd > 28) {
+          document.getElementById('err-payment-day').classList.add('visible');
+          return;
+        }
+      }
+
+      const submitBtn  = document.getElementById('submit-btn');
+      const btnText    = document.getElementById('btn-text');
+      const btnSpinner = document.getElementById('btn-spinner');
+      submitBtn.disabled = true;
+      btnText.textContent = 'Cadastrando...';
+      btnSpinner.classList.remove('hidden');
+
+      const payload = {
+        name:           document.getElementById('s-name').value.trim(),
+        email:          document.getElementById('s-email').value.trim().toLowerCase(),
+        phone:          document.getElementById('s-phone').value.replace(/\D/g,'') || null,
+        birth_date:     document.getElementById('s-birth-date').value || null,
+        gender:         document.getElementById('s-gender').value || null,
+        objective:      document.getElementById('s-objective').value || null,
+        health_notes:   document.getElementById('s-health-notes').value.trim() || null,
+        monthly_fee:    parseFloat(document.getElementById('s-monthly-fee').value) || null,
+        payment_day:    paymentDay ? parseInt(paymentDay) : null,
+        modality:       document.querySelector('input[name="modality"]:checked')?.value || 'presencial',
+        internal_notes: document.getElementById('s-internal-notes').value.trim() || null,
+      };
+
+      const result = await Api.post('/api/students/', payload);
+
+      submitBtn.disabled = false;
+      btnText.textContent = 'Cadastrar aluno';
+      btnSpinner.classList.add('hidden');
+
+      if (result.success) {
+        createdStudent = result.data.student;
+        showSuccessState();
+      } else {
+        Toast.error(result.message || 'Erro ao cadastrar aluno. Tente novamente.');
+      }
+    }
+
+    function showSuccessState() {
+      document.querySelector('.bg-white.rounded-2xl:not(#success-state)').classList.add('hidden');
+      document.getElementById('step-indicator').classList.add('hidden');
+
+      const successEl = document.getElementById('success-state');
+      successEl.style.display = 'block';
+
+      document.getElementById('success-title').textContent = `${createdStudent.name.split(' ')[0]} cadastrado com sucesso!`;
+
+      const accessUrl = createdStudent.access_url || '#';
+      document.getElementById('access-link-text').textContent = accessUrl;
+      document.getElementById('view-profile-btn').href =
+        `/frontend/trainer/students/detail.html?id=${createdStudent.id}`;
+
+      lucide.createIcons();
+    }
+
+    function copyAccessLink() {
+      const url = document.getElementById('access-link-text').textContent;
+      navigator.clipboard.writeText(url).then(() => {
+        document.getElementById('copy-feedback').innerHTML =
+          `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Copiado!`;
+        setTimeout(() => {
+          document.getElementById('copy-feedback').innerHTML =
+            `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copiar`;
+        }, 2000);
+        Toast.success('Link copiado!');
+      });
+    }
+
+    function resetForm() {
+      createdStudent = null;
+      currentStep = 1;
+      document.getElementById('success-state').style.display = 'none';
+      document.querySelector('.bg-white.rounded-2xl:not(#success-state)').classList.remove('hidden');
+      document.getElementById('step-indicator').classList.remove('hidden');
+      document.getElementById('step-1').classList.remove('hidden');
+      document.getElementById('step-2').classList.add('hidden');
+      updateStepIndicator();
+      document.querySelectorAll('.input-field').forEach(f => {
+        if (f.type !== 'radio') { f.value = ''; f.classList.remove('error','valid'); }
+      });
+      document.getElementById('avatar-preview').classList.add('hidden');
+      document.getElementById('avatar-placeholder').classList.remove('hidden');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initLayout('Novo Aluno', [
+        { label: 'Alunos', href: '/frontend/trainer/index.html' },
+        { label: 'Novo Aluno' },
+      ]);
+      lucide.createIcons();
+    });
+  </script>
+</body>
+</html>

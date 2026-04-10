@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Minha Área — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #22C55E;
+      --green-dark: #15803D;
+      --orange: #F97316;
+      --gray-900: #0F172A;
+      --gray-600: #475569;
+      --gray-400: #94A3B8;
+      --gray-200: #E2E8F0;
+      --gray-100: #F1F5F9;
+      --gray-50:  #F8FAFC;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--gray-50);
+      min-height: 100vh;
+      min-height: 100dvh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Header ── */
+    #header {
+      background: #fff;
+      border-bottom: 1px solid var(--gray-100);
+      padding: 16px 20px;
+      padding-top: max(16px, env(safe-area-inset-top));
+    }
+    .header-inner {
+      max-width: 480px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .trainer-avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+    }
+    .trainer-avatar-init {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .header-trainer { font-size: 11px; color: var(--gray-400); }
+    .header-brand {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px; font-weight: 800; color: var(--gray-900);
+    }
+
+    /* ── Hero de saudação ── */
+    #hero {
+      background: linear-gradient(135deg, #15803D 0%, #22C55E 100%);
+      padding: 28px 20px 32px;
+    }
+    .hero-inner { max-width: 480px; margin: 0 auto; }
+    .hero-greeting {
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.75); margin-bottom: 4px;
+    }
+    .hero-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 26px; font-weight: 800;
+      color: #fff; margin-bottom: 16px; line-height: 1.2;
+    }
+    .hero-stats {
+      display: flex; gap: 12px;
+    }
+    .hero-stat {
+      background: rgba(255,255,255,0.15);
+      border-radius: 12px; padding: 10px 14px;
+      flex: 1;
+    }
+    .hero-stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px; font-weight: 700; color: #fff;
+    }
+    .hero-stat-label {
+      font-size: 10px; font-weight: 600;
+      color: rgba(255,255,255,0.7);
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* ── Conteúdo principal ── */
+    #content {
+      max-width: 480px; margin: 0 auto;
+      padding: 20px 20px 40px;
+    }
+
+    /* ── Seção de título ── */
+    .section-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 16px; font-weight: 700;
+      color: var(--gray-900); margin-bottom: 14px;
+    }
+
+    /* ── Card de ficha ── */
+    .workout-card {
+      background: #fff;
+      border: 1px solid var(--gray-100);
+      border-radius: 20px;
+      padding: 20px;
+      margin-bottom: 12px;
+      display: flex; align-items: center; gap: 16px;
+      text-decoration: none; color: inherit;
+      transition: transform 0.15s, box-shadow 0.15s;
+      cursor: pointer;
+    }
+    .workout-card:active { transform: scale(0.98); }
+    .workout-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+
+    .workout-icon {
+      width: 48px; height: 48px; border-radius: 14px;
+      background: #F0FDF4; color: var(--green-dark);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 20px;
+    }
+    .workout-info { flex: 1; min-width: 0; }
+    .workout-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 15px; font-weight: 700; color: var(--gray-900);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+    .workout-meta {
+      display: flex; align-items: center; gap: 8px;
+      flex-wrap: wrap;
+    }
+    .workout-badge {
+      font-size: 10px; font-weight: 700;
+      padding: 3px 8px; border-radius: 999px;
+      background: #F0FDF4; color: var(--green-dark);
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .workout-count {
+      font-size: 12px; color: var(--gray-400);
+    }
+    .workout-arrow {
+      color: var(--gray-400); flex-shrink: 0;
+    }
+
+    /* ── Estado vazio ── */
+    #empty-state {
+      text-align: center; padding: 48px 24px;
+      display: none;
+    }
+    .empty-icon { font-size: 56px; margin-bottom: 16px; }
+    .empty-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 700; color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+    .empty-text { font-size: 14px; color: var(--gray-400); line-height: 1.6; }
+
+    /* ── Loading skeleton ── */
+    #loading-state { display: block; }
+    .skeleton {
+      background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.2s infinite;
+      border-radius: 12px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    .skeleton-card {
+      height: 88px; border-radius: 20px; margin-bottom: 12px;
+    }
+
+    /* ── Erro ── */
+    #error-state {
+      text-align: center; padding: 48px 24px;
+      display: none;
+    }
+
+    /* ── Loading inicial (tela cheia) ── */
+    #loading-screen {
+      min-height: 100dvh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 16px;
+    }
+    .loading-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--gray-200); border-top-color: var(--green);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Info do trainer no rodapé ── */
+    #trainer-footer {
+      max-width: 480px; margin: 0 auto 0;
+      padding: 0 20px 32px;
+    }
+    .trainer-card {
+      background: #fff; border: 1px solid var(--gray-100);
+      border-radius: 20px; padding: 16px 20px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .trainer-card-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+    }
+    .trainer-card-avatar-init {
+      width: 44px; height: 44px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; flex-shrink: 0;
+    }
+    .trainer-card-label { font-size: 11px; color: var(--gray-400); margin-bottom: 2px; }
+    .trainer-card-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 14px; font-weight: 700; color: var(--gray-900);
+    }
+    .trainer-card-bio { font-size: 12px; color: var(--gray-400); margin-top: 2px; }
+  </style>
+</head>
+<body>
+
+<!-- Tela de carregamento inicial -->
+<div id="loading-screen">
+  <div class="loading-spinner"></div>
+  <p style="font-size:14px;color:#94A3B8;">Carregando sua área...</p>
+</div>
+
+<!-- Conteúdo principal (oculto até carregar) -->
+<div id="app" style="display:none;">
+
+  <!-- Header -->
+  <div id="header">
+    <div class="header-inner">
+      <div id="trainer-avatar-header"></div>
+      <div>
+        <div class="header-trainer" id="header-trainer-name"></div>
+        <div class="header-brand">FitFlow Pro</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div id="hero">
+    <div class="hero-inner">
+      <div class="hero-greeting">Olá! 👋</div>
+      <div class="hero-name" id="hero-student-name">Carregando...</div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="stat-workouts">—</div>
+          <div class="hero-stat-label">Fichas ativas</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value" id="stat-objective">—</div>
+          <div class="hero-stat-label">Objetivo</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Fichas de treino -->
+  <div id="content">
+    <div class="section-title">Minhas fichas de treino</div>
+
+    <!-- Skeletons enquanto carrega -->
+    <div id="loading-state">
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card"></div>
+      <div class="skeleton skeleton-card" style="opacity:0.5"></div>
+    </div>
+
+    <!-- Lista de fichas -->
+    <div id="workouts-list" style="display:none;"></div>
+
+    <!-- Sem fichas -->
+    <div id="empty-state">
+      <div class="empty-icon">💪</div>
+      <div class="empty-title">Nenhuma ficha ainda</div>
+      <div class="empty-text">Seu personal trainer ainda não cadastrou fichas de treino para você. Em breve elas aparecerão aqui!</div>
+    </div>
+
+    <!-- Erro -->
+    <div id="error-state">
+      <div style="font-size:48px;margin-bottom:16px;">😕</div>
+      <div class="empty-title">Algo deu errado</div>
+      <div class="empty-text" id="error-msg">Não foi possível carregar suas fichas.</div>
+    </div>
+  </div>
+
+  <!-- Info do trainer -->
+  <div id="trainer-footer">
+    <div class="trainer-card">
+      <div id="trainer-card-avatar"></div>
+      <div>
+        <div class="trainer-card-label">Seu personal trainer</div>
+        <div class="trainer-card-name" id="trainer-card-name"></div>
+        <div class="trainer-card-bio" id="trainer-card-bio"></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>window.API_BASE_URL = "http://localhost:5000";</script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const TOKEN  = params.get('token');
+
+  const OBJECTIVE_LABELS = {
+    emagrecimento: 'Emagrecimento',
+    hipertrofia:   'Hipertrofia',
+    condicionamento: 'Condicionamento',
+    saude:         'Saúde',
+    reabilitacao:  'Reabilitação',
+  };
+
+  const CATEGORY_ICONS = {
+    A: '🅰️', B: '🅱️', C: '🅲', D: '🅳', E: '🅴',
+    Cardio: '🏃', Funcional: '⚡', Fullbody: '💪', Outro: '📋',
+  };
+
+  async function init() {
+    if (!TOKEN) {
+      showFullError('Link de acesso inválido. Peça um novo link ao seu personal trainer.');
+      return;
+    }
+
+    try {
+      const res = await fetch(`${window.API_BASE_URL}/api/students/public/${TOKEN}`);
+      const result = await res.json();
+
+      if (!result.success) {
+        showFullError(result.message || 'Link de acesso inválido ou expirado.');
+        return;
+      }
+
+      const student = result.data.student;
+
+      // Renderiza hero e header
+      renderHeader(student);
+      renderHero(student);
+      renderTrainerFooter(student.trainer);
+
+      // Renderiza fichas
+      renderWorkouts(student.active_workouts || []);
+
+      // Exibe app
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+
+    } catch (e) {
+      showFullError('Erro de conexão. Verifique sua internet e tente novamente.');
+    }
+  }
+
+  function renderHeader(student) {
+    const trainer = student.trainer;
+    document.getElementById('header-trainer-name').textContent =
+      `Personal: ${trainer.name}`;
+
+    const wrap = document.getElementById('trainer-avatar-header');
+    wrap.innerHTML = trainer.avatar_url
+      ? `<img src="${trainer.avatar_url}" class="trainer-avatar" alt="${escHtml(trainer.name)}" />`
+      : `<div class="trainer-avatar-init">${getInitials(trainer.name)}</div>`;
+  }
+
+  function renderHero(student) {
+    const firstName = student.name.split(' ')[0];
+    document.getElementById('hero-student-name').textContent = `Olá, ${firstName}!`;
+    document.getElementById('hero-student-name').previousElementSibling.style.display = 'none';
+
+    const workouts = student.active_workouts || [];
+    document.getElementById('stat-workouts').textContent = workouts.length;
+    document.getElementById('stat-objective').textContent =
+      OBJECTIVE_LABELS[student.objective] || '—';
+
+    document.title = `Área do aluno — ${student.name}`;
+  }
+
+  function renderTrainerFooter(trainer) {
+    document.getElementById('trainer-card-name').textContent = trainer.name;
+    document.getElementById('trainer-card-bio').textContent = trainer.bio || '';
+
+    if (!trainer.bio) {
+      document.getElementById('trainer-card-bio').style.display = 'none';
+    }
+
+    const wrap = document.getElementById('trainer-card-avatar');
+    wrap.innerHTML = trainer.avatar_url
+      ? `<img src="${trainer.avatar_url}" class="trainer-card-avatar" alt="${escHtml(trainer.name)}" />`
+      : `<div class="trainer-card-avatar-init">${getInitials(trainer.name)}</div>`;
+  }
+
+  function renderWorkouts(workouts) {
+    document.getElementById('loading-state').style.display = 'none';
+
+    if (!workouts.length) {
+      document.getElementById('empty-state').style.display = 'block';
+      return;
+    }
+
+    const list = document.getElementById('workouts-list');
+    list.innerHTML = workouts.map(w => {
+      const icon  = CATEGORY_ICONS[w.category] || '📋';
+      const count = w.exercise_count != null
+        ? `${w.exercise_count} exercício${w.exercise_count !== 1 ? 's' : ''}`
+        : '';
+      const badge = w.category
+        ? `<span class="workout-badge">Ficha ${escHtml(w.category)}</span>`
+        : '';
+
+      return `
+        <a class="workout-card"
+           href="/frontend/student/workout.html?token=${encodeURIComponent(TOKEN)}&workout=${encodeURIComponent(w.id)}">
+          <div class="workout-icon">${icon}</div>
+          <div class="workout-info">
+            <div class="workout-title">${escHtml(w.title)}</div>
+            <div class="workout-meta">
+              ${badge}
+              ${count ? `<span class="workout-count">${count}</span>` : ''}
+            </div>
+          </div>
+          <svg class="workout-arrow" xmlns="http://www.w3.org/2000/svg"
+               width="18" height="18" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </a>`;
+    }).join('');
+
+    list.style.display = 'block';
+  }
+
+  function showFullError(msg) {
+    document.getElementById('loading-screen').innerHTML = `
+      <div style="text-align:center;padding:40px 24px;max-width:320px">
+        <div style="font-size:56px;margin-bottom:20px">😕</div>
+        <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;
+                   font-weight:800;color:#0F172A;margin-bottom:10px">Ops!</h2>
+        <p style="font-size:14px;color:#64748B;line-height:1.6">${escHtml(msg)}</p>
+      </div>`;
+  }
+
+  // ── Helpers ──
+  function getInitials(name = '') {
+    return name.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();
+  }
+
+  function escHtml(str = '') {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  init();
+</script>
+</body>
+</html>

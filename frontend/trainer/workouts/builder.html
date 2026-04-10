@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Montador de Treino — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
+    h1,h2,h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    .input-sm {
+      border: 1.5px solid #E2E8F0; border-radius: 10px;
+      padding: 8px 12px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+      color: #0F172A; background: #fff; outline: none; width: 100%;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .input-sm:focus { border-color: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+    select.input-sm { cursor: pointer; }
+
+    /* Exercise card */
+    .exercise-card {
+      background: #fff; border: 1.5px solid #F1F5F9;
+      border-radius: 16px; padding: 16px;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .exercise-card:hover { border-color: #E2E8F0; }
+    .exercise-card.superset { border-left: 4px solid #F97316; }
+
+    /* Drag handle */
+    .drag-handle {
+      cursor: grab; color: #CBD5E1; padding: 4px;
+      touch-action: none; display: flex; align-items: center;
+    }
+    .drag-handle:active { cursor: grabbing; }
+    .sortable-ghost { opacity: 0.4; background: #F0FDF4; border-color: #22C55E; }
+    .sortable-chosen { box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+
+    /* Número de posição */
+    .pos-badge {
+      width: 22px; height: 22px; border-radius: 6px;
+      background: #F1F5F9; color: #64748B;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'JetBrains Mono', monospace; flex-shrink: 0;
+    }
+
+    /* Toggle superset */
+    .superset-toggle {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; font-weight: 600; color: #94A3B8;
+      cursor: pointer; user-select: none;
+    }
+    .superset-toggle.active { color: #F97316; }
+    .superset-toggle input { display: none; }
+
+    /* Video embed */
+    .video-embed { border-radius: 12px; overflow: hidden; aspect-ratio: 16/9; }
+    .video-embed iframe { width: 100%; height: 100%; border: none; }
+
+    /* Painel IA */
+    #ai-panel {
+      background: linear-gradient(135deg, #F0FDF4, #ECFDF5);
+      border: 1.5px solid #BBF7D0; border-radius: 20px; padding: 20px;
+    }
+
+    /* Save status */
+    #save-status { font-size: 12px; font-weight: 600; transition: color 0.3s; }
+    #save-status.saving { color: #F97316; }
+    #save-status.saved  { color: #22C55E; }
+    #save-status.error  { color: #EF4444; }
+    #save-status.pending{ color: #94A3B8; }
+
+    /* Exercise search modal */
+    .chip {
+      padding: 5px 14px; border-radius: 999px; font-size: 12px;
+      font-weight: 600; border: 1.5px solid #E2E8F0;
+      cursor: pointer; background: #fff; color: #64748B;
+      transition: all 0.15s; white-space: nowrap;
+    }
+    .chip.active { background: #22C55E; color: #fff; border-color: #22C55E; }
+    .chip:hover:not(.active) { background: #F8FAFC; }
+
+    .exercise-row {
+      padding: 10px 14px; border-radius: 10px; cursor: pointer;
+      display: flex; align-items: center; gap: 10px;
+      transition: background 0.1s;
+    }
+    .exercise-row:hover { background: #F0FDF4; }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* AI skeleton */
+    .ai-skeleton {
+      background: linear-gradient(90deg, #DCFCE7 25%, #BBF7D0 50%, #DCFCE7 75%);
+      background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 10px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Textarea auto-resize */
+    textarea.input-sm { resize: none; min-height: 60px; }
+
+    /* ── Modo compacto durante arraste ── */
+    /* Reduz padding do card */
+    #exercise-list.is-sorting .exercise-card {
+      padding: 10px 14px;
+      transition: padding 0.1s;
+    }
+    /* Esconde tudo exceto a primeira linha (nome do exercício) */
+    #exercise-list.is-sorting .exercise-card .flex-1 > *:not(:first-child) {
+      display: none !important;
+    }
+    #exercise-list.is-sorting .exercise-card .flex-1 > :first-child {
+      margin-bottom: 0 !important;
+    }
+    /* Na linha do nome, esconde o select de grupo muscular */
+    #exercise-list.is-sorting .exercise-card .flex-1 > :first-child > *:not(:first-child) {
+      display: none !important;
+    }
+    /* Bloqueia interação nos inputs durante o arraste */
+    #exercise-list.is-sorting .exercise-card input,
+    #exercise-list.is-sorting .exercise-card select,
+    #exercise-list.is-sorting .exercise-card textarea {
+      pointer-events: none;
+      user-select: none;
+    }
+    /* Drag handle fica verde quando a lista está em modo de arraste */
+    #exercise-list.is-sorting .drag-handle {
+      color: #22C55E;
+    }
+  </style>
+</head>
+
+<body>
+<div id="main-content" class="min-h-screen">
+  <div class="px-4 lg:px-6 pb-10">
+
+    <!-- Botão voltar -->
+    <div class="mb-4">
+      <a id="btn-back" href="/frontend/trainer/index.html"
+         class="inline-flex items-center gap-2 text-sm font-semibold text-gray-500
+                hover:text-gray-800 transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Voltar ao perfil do aluno
+      </a>
+    </div>
+
+    <!-- Header da ficha -->
+    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-5">
+      <div class="flex flex-col lg:flex-row gap-4">
+        <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+
+          <!-- Nome da ficha -->
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Nome da ficha *</label>
+            <input type="text" id="workout-title" class="input-sm text-base font-semibold"
+              placeholder="Ex: Treino A — Peito e Tríceps" />
+          </div>
+
+          <!-- Categoria -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Categoria</label>
+            <select id="workout-category" class="input-sm">
+              <option value="">Sem categoria</option>
+              <option value="A">Treino A</option>
+              <option value="B">Treino B</option>
+              <option value="C">Treino C</option>
+              <option value="D">Treino D</option>
+              <option value="E">Treino E</option>
+              <option value="Cardio">Cardio</option>
+              <option value="Funcional">Funcional</option>
+              <option value="Fullbody">Fullbody</option>
+            </select>
+          </div>
+
+          <!-- Aluno (autocomplete) -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Aluno *</label>
+            <div class="relative">
+              <input type="text" id="student-search" class="input-sm" placeholder="Buscar aluno..."
+                autocomplete="off" />
+              <div id="student-dropdown"
+                class="absolute z-20 w-full bg-white border border-gray-200 rounded-xl
+                       shadow-lg mt-1 max-h-48 overflow-y-auto hidden">
+              </div>
+            </div>
+            <input type="hidden" id="student-id" />
+          </div>
+
+          <!-- Datas -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Início</label>
+            <input type="date" id="workout-starts" class="input-sm" />
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Fim</label>
+            <input type="date" id="workout-ends" class="input-sm" />
+          </div>
+
+          <!-- Descrição -->
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Descrição (opcional)</label>
+            <input type="text" id="workout-desc" class="input-sm" placeholder="Ex: Foco em hipertrofia, ênfase na parte superior" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Status de auto-save + link público -->
+      <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-50">
+        <div class="flex items-center gap-2">
+          <span id="save-status" class="pending flex items-center gap-1.5">
+            <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+            <span id="save-status-text">Não salvo</span>
+          </span>
+        </div>
+        <div id="public-link-wrap" class="hidden flex items-center gap-2">
+          <span class="text-xs text-gray-400">Link público:</span>
+          <a id="public-link" href="#" target="_blank"
+             class="text-xs text-green-600 hover:text-green-700 font-mono underline truncate max-w-48"></a>
+          <button onclick="copyPublicLink()"
+            class="text-gray-400 hover:text-green-600 transition-colors">
+            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layout principal: exercícios + painel IA -->
+    <div class="flex flex-col lg:flex-row gap-5">
+
+      <!-- Coluna de exercícios -->
+      <div class="flex-1 min-w-0">
+
+        <!-- Toolbar -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-gray-900 flex items-center gap-2">
+            <span id="exercise-count-badge"
+              class="w-6 h-6 rounded-lg bg-green-100 text-green-700 text-xs font-bold
+                     flex items-center justify-center">0</span>
+            Exercícios
+          </h2>
+          <div class="flex items-center gap-2">
+            <!-- Toggle painel IA (mobile) -->
+            <button onclick="toggleAiPanel()"
+              class="lg:hidden flex items-center gap-1.5 px-3 py-2 bg-green-50 border border-green-200
+                     text-green-700 rounded-xl text-xs font-semibold transition-colors hover:bg-green-100">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> IA
+            </button>
+            <button onclick="openExerciseModal()"
+              class="flex items-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600
+                     text-white text-sm font-semibold rounded-xl transition-colors">
+              <i data-lucide="plus" class="w-4 h-4"></i>
+              Adicionar exercício
+            </button>
+          </div>
+        </div>
+
+        <!-- Lista de exercícios -->
+        <div id="exercise-list" class="space-y-3">
+          <!-- Preenchido pelo WorkoutBuilder -->
+        </div>
+
+        <!-- Estado vazio -->
+        <div id="empty-state" class="flex flex-col items-center justify-center py-16 text-center">
+          <div class="w-20 h-20 bg-green-50 rounded-3xl flex items-center justify-center mb-5">
+            <i data-lucide="dumbbell" class="w-9 h-9 text-green-300"></i>
+          </div>
+          <h3 class="font-bold text-gray-700 text-lg mb-2">Nenhum exercício ainda</h3>
+          <p class="text-sm text-gray-400 mb-6 max-w-xs">
+            Adicione exercícios manualmente ou use a IA para gerar a ficha automaticamente.
+          </p>
+          <button onclick="openExerciseModal()"
+            class="flex items-center gap-2 px-5 py-3 bg-green-500 hover:bg-green-600
+                   text-white font-semibold rounded-xl transition-colors text-sm">
+            <i data-lucide="plus" class="w-4 h-4"></i> Adicionar primeiro exercício
+          </button>
+        </div>
+
+        <!-- Botão salvar ficha -->
+        <div class="mt-6 flex justify-end">
+          <button id="save-workout-btn" onclick="saveWorkout()"
+            class="flex items-center gap-2 px-8 py-3.5 bg-green-500 hover:bg-green-600
+                   text-white font-bold text-sm rounded-xl transition-colors disabled:opacity-60">
+            <span id="save-btn-text">Salvar ficha</span>
+            <span id="save-btn-spinner" class="spinner hidden"></span>
+            <i data-lucide="check" class="w-4 h-4" id="save-btn-icon"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Painel IA -->
+      <div id="ai-panel-wrap" class="lg:w-72 flex-shrink-0">
+        <div id="ai-panel">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-8 h-8 rounded-xl bg-green-500 flex items-center justify-center">
+              <i data-lucide="sparkles" class="w-4 h-4 text-white"></i>
+            </div>
+            <h3 class="font-bold text-green-800 text-sm">Gerar com IA</h3>
+          </div>
+
+          <!-- Info do aluno selecionado -->
+          <div id="ai-student-info" class="bg-white/60 rounded-xl p-3 mb-4 text-xs text-green-800 hidden">
+            <p class="font-semibold mb-0.5">Aluno selecionado:</p>
+            <p id="ai-student-name" class="font-bold text-green-700"></p>
+            <p id="ai-student-obj" class="text-green-600 mt-0.5"></p>
+          </div>
+
+          <!-- Contexto livre -->
+          <div class="mb-3">
+            <label class="block text-xs font-semibold text-green-700 mb-1">Contexto adicional</label>
+            <textarea id="ai-context" rows="3"
+              class="w-full p-3 bg-white/70 border border-green-200 rounded-xl text-xs
+                     text-gray-700 outline-none focus:border-green-400 focus:ring-2
+                     focus:ring-green-100 resize-none"
+              placeholder="Ex: foco em glúteos esta semana, aluna com dor no joelho..."></textarea>
+          </div>
+
+          <!-- Equipamentos -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-green-700 mb-2">Equipamentos disponíveis</label>
+            <div class="space-y-2">
+              <label class="flex items-center gap-2 text-xs text-green-800 cursor-pointer">
+                <input type="checkbox" class="equipment-check rounded" value="barra" checked />
+                Barra olímpica
+              </label>
+              <label class="flex items-center gap-2 text-xs text-green-800 cursor-pointer">
+                <input type="checkbox" class="equipment-check rounded" value="halteres" checked />
+                Halteres
+              </label>
+              <label class="flex items-center gap-2 text-xs text-green-800 cursor-pointer">
+                <input type="checkbox" class="equipment-check rounded" value="máquinas" checked />
+                Máquinas
+              </label>
+              <label class="flex items-center gap-2 text-xs text-green-800 cursor-pointer">
+                <input type="checkbox" class="equipment-check rounded" value="elástico" />
+                Elástico / banda
+              </label>
+              <label class="flex items-center gap-2 text-xs text-green-800 cursor-pointer">
+                <input type="checkbox" class="equipment-check rounded" value="peso corporal" />
+                Peso corporal
+              </label>
+              <label class="flex items-center gap-2 text-xs text-green-800 cursor-pointer">
+                <input type="checkbox" class="equipment-check rounded" value="kettlebell" />
+                Kettlebell
+              </label>
+            </div>
+          </div>
+
+          <button id="ai-generate-btn" onclick="generateWithAI()"
+            class="w-full flex items-center justify-center gap-2 py-3
+                   bg-green-500 hover:bg-green-600 text-white font-bold
+                   text-sm rounded-xl transition-colors">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span id="ai-btn-text">Gerar ficha completa</span>
+            <span id="ai-spinner" class="spinner hidden"></span>
+          </button>
+
+          <p class="text-xs text-green-600 text-center mt-2 opacity-70">
+            Os exercícios gerados são adicionados à lista acima para você ajustar.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL: Busca de exercícios                                    -->
+<!-- ============================================================ -->
+<div id="exercise-modal"
+  class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm
+         flex items-end sm:items-center justify-center p-0 sm:p-4 hidden">
+  <div class="bg-white w-full sm:max-w-lg rounded-t-3xl sm:rounded-2xl shadow-2xl
+              flex flex-col max-h-[85vh]">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between p-5 border-b border-gray-100">
+      <h3 class="font-bold text-gray-900">Adicionar exercício</h3>
+      <button onclick="closeExerciseModal()"
+        class="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center
+               hover:bg-gray-200 transition-colors">
+        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+      </button>
+    </div>
+
+    <!-- Busca -->
+    <div class="px-5 pt-4">
+      <div class="relative mb-3">
+        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+        <input type="text" id="exercise-search"
+          class="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                 focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100"
+          placeholder="Buscar exercício..." />
+      </div>
+
+      <!-- Chips de filtro -->
+      <div class="flex gap-2 flex-wrap pb-3 overflow-x-auto">
+        <button class="chip active" data-group="">Todos</button>
+        <button class="chip" data-group="peito">Peito</button>
+        <button class="chip" data-group="costas">Costas</button>
+        <button class="chip" data-group="ombro">Ombro</button>
+        <button class="chip" data-group="biceps">Bíceps</button>
+        <button class="chip" data-group="triceps">Tríceps</button>
+        <button class="chip" data-group="pernas">Pernas</button>
+        <button class="chip" data-group="abdomen">Abdômen</button>
+        <button class="chip" data-group="cardio">Cardio</button>
+        <button class="chip" data-group="funcional">Funcional</button>
+      </div>
+    </div>
+
+    <!-- Lista de exercícios -->
+    <div id="exercise-results" class="flex-1 overflow-y-auto px-3 pb-4">
+      <!-- Preenchido via JS -->
+    </div>
+
+    <!-- Exercício personalizado -->
+    <div class="p-4 border-t border-gray-100">
+      <div class="flex gap-2">
+        <input type="text" id="custom-exercise-name"
+          class="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-sm
+                 focus:outline-none focus:border-green-400"
+          placeholder="Nome de exercício personalizado..." />
+        <button onclick="addCustomExercise()"
+          class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700
+                 rounded-xl text-sm font-semibold transition-colors">
+          Adicionar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>window.API_BASE_URL = "http://localhost:5000";</script>
+<script src="/frontend/js/api.js"></script>
+<script src="/frontend/js/auth.js"></script>
+<script src="/frontend/js/components/toast.js"></script>
+<script src="/frontend/js/components/modal.js"></script>
+<script src="/frontend/js/components/layout.js"></script>
+<script src="/frontend/js/components/workout-builder.js"></script>
+<script src="/frontend/js/exercises-db.js"></script>
+
+<script>
+  Auth.requireAuth('trainer');
+
+  // --- Parâmetros da URL ---
+  const urlParams = new URLSearchParams(window.location.search);
+  const EDIT_WORKOUT_ID = urlParams.get('id');          // edição de ficha existente
+  const PREFILL_STUDENT = urlParams.get('student_id'); // pré-seleção de aluno
+
+  // Se veio do perfil de um aluno, já aponta o botão voltar corretamente
+  if (PREFILL_STUDENT) {
+    document.getElementById('btn-back').href =
+      `/frontend/trainer/students/detail.html?id=${PREFILL_STUDENT}#workouts`;
+  }
+
+  // --- Estado global ---
+  let allStudents = [];
+  let selectedStudent = null;
+  let searchDebounce = null;
+  let activeGroup = "";
+
+  const MUSCLE_LABELS = {
+    peito: 'Peito', costas: 'Costas', ombro: 'Ombro',
+    biceps: 'Bíceps', triceps: 'Tríceps', pernas: 'Pernas',
+    abdomen: 'Abdômen', cardio: 'Cardio', funcional: 'Funcional', outro: 'Outro',
+  };
+
+  // ─── Inicialização ───
+  document.addEventListener('DOMContentLoaded', async () => {
+    initLayout('Montador de Treino', [
+      { label: 'Alunos', href: '/frontend/trainer/index.html' },
+      { label: 'Treinos' },
+    ]);
+    lucide.createIcons();
+
+    // Inicializa o builder sem exercícios
+    WorkoutBuilder.init(EDIT_WORKOUT_ID, [], renderExercises, updateSaveStatus);
+
+    await loadStudents();
+
+    if (EDIT_WORKOUT_ID) await loadExistingWorkout();
+    else if (PREFILL_STUDENT) prefillStudent(PREFILL_STUDENT);
+  });
+
+  // ─── Carregar alunos para autocomplete ───
+  async function loadStudents() {
+    const result = await Api.get('/api/students/', { per_page: 100, sort: 'name' });
+    if (result.success) allStudents = result.data.students;
+  }
+
+  function prefillStudent(studentId) {
+    const s = allStudents.find(s => s.id === studentId);
+    if (s) selectStudent(s);
+  }
+
+  // ─── Autocomplete de aluno ───
+  document.getElementById('student-search').addEventListener('input', function() {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(() => showStudentDropdown(this.value), 200);
+  });
+
+  document.getElementById('student-search').addEventListener('blur', () => {
+    setTimeout(() => document.getElementById('student-dropdown').classList.add('hidden'), 200);
+  });
+
+  function showStudentDropdown(query) {
+    const dd = document.getElementById('student-dropdown');
+    const term = query.toLowerCase();
+    const matches = allStudents.filter(s =>
+      s.name.toLowerCase().includes(term) || s.email.toLowerCase().includes(term)
+    ).slice(0, 8);
+
+    if (!matches.length) { dd.classList.add('hidden'); return; }
+
+    dd.innerHTML = matches.map(s => `
+      <button class="w-full text-left px-3 py-2.5 hover:bg-green-50 transition-colors
+                     flex items-center gap-3 text-sm"
+              onmousedown="selectStudent(${JSON.stringify(s).replace(/"/g, '&quot;')})">
+        <div class="w-7 h-7 rounded-full bg-green-400 flex items-center justify-center
+                    text-white text-xs font-bold flex-shrink-0">
+          ${s.name.split(' ').slice(0,2).map(n=>n[0]).join('').toUpperCase()}
+        </div>
+        <div>
+          <div class="font-semibold text-gray-800">${escHtml(s.name)}</div>
+          <div class="text-xs text-gray-400">${escHtml(s.objective || s.email)}</div>
+        </div>
+      </button>
+    `).join('');
+    dd.classList.remove('hidden');
+  }
+
+  function selectStudent(student) {
+    selectedStudent = student;
+    document.getElementById('student-search').value = student.name;
+    document.getElementById('student-id').value = student.id;
+    document.getElementById('student-dropdown').classList.add('hidden');
+
+    // Atualiza botão voltar com o perfil do aluno selecionado
+    document.getElementById('btn-back').href =
+      `/frontend/trainer/students/detail.html?id=${student.id}#workouts`;
+
+    // Atualiza painel IA
+    document.getElementById('ai-student-info').classList.remove('hidden');
+    document.getElementById('ai-student-name').textContent = student.name;
+    document.getElementById('ai-student-obj').textContent =
+      student.objective ? `Objetivo: ${student.objective}` : '';
+  }
+
+  // ─── Carregar ficha existente (edição) ───
+  async function loadExistingWorkout() {
+    const result = await Api.get(`/api/workouts/${EDIT_WORKOUT_ID}`);
+    if (!result.success) { Toast.error('Ficha não encontrada.'); return; }
+
+    const w = result.data.workout;
+    document.getElementById('workout-title').value    = w.title || '';
+    document.getElementById('workout-category').value = w.category || '';
+    document.getElementById('workout-desc').value     = w.description || '';
+    if (w.starts_at) document.getElementById('workout-starts').value = w.starts_at.slice(0,10);
+    if (w.ends_at)   document.getElementById('workout-ends').value   = w.ends_at.slice(0,10);
+
+    if (w.student_id) {
+      const s = allStudents.find(s => s.id === w.student_id);
+      if (s) selectStudent(s);
+    }
+
+    WorkoutBuilder.init(EDIT_WORKOUT_ID, w.exercises || [], renderExercises, updateSaveStatus);
+    updatePublicLink(EDIT_WORKOUT_ID);
+    document.title = `${w.title} — FitFlow Pro`;
+  }
+
+  // ─── Render exercícios ───
+  function renderExercises(exercises) {
+    const list = document.getElementById('exercise-list');
+    const empty = document.getElementById('empty-state');
+    document.getElementById('exercise-count-badge').textContent = exercises.length;
+
+    if (!exercises.length) {
+      list.innerHTML = '';
+      empty.style.display = '';
+      return;
+    }
+    empty.style.display = 'none';
+
+    list.innerHTML = exercises.map(ex => buildExerciseCard(ex)).join('');
+    lucide.createIcons();
+
+    // Re-inicializa SortableJS após re-render
+    WorkoutBuilder.initSortable(list, el => parseInt(el.dataset.localId));
+
+    // Auto-resize textareas
+    list.querySelectorAll('textarea').forEach(ta => autoResize(ta));
+  }
+
+  function buildExerciseCard(ex) {
+    const yt = getYouTubeId(ex.video_url || '');
+    const muscleLabel = MUSCLE_LABELS[ex.muscle_group] || ex.muscle_group || '';
+    const isSuperset  = !!ex.superset_group;
+
+    return `
+    <div class="exercise-card ${isSuperset ? 'superset' : ''}"
+         data-local-id="${ex._localId}">
+      <div class="flex items-start gap-3">
+        <!-- Drag handle + posição -->
+        <div class="flex flex-col items-center gap-2 pt-0.5">
+          <div class="drag-handle" title="Arraste para reordenar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="9" cy="5" r="1"/><circle cx="15" cy="5" r="1"/>
+              <circle cx="9" cy="12" r="1"/><circle cx="15" cy="12" r="1"/>
+              <circle cx="9" cy="19" r="1"/><circle cx="15" cy="19" r="1"/>
+            </svg>
+          </div>
+          <div class="pos-badge">${ex.position}</div>
+        </div>
+
+        <!-- Conteúdo -->
+        <div class="flex-1 min-w-0">
+          <!-- Linha 1: nome + grupo muscular -->
+          <div class="flex items-start gap-2 mb-3">
+            <input type="text" value="${escHtml(ex.exercise_name)}"
+              class="input-sm font-semibold text-gray-900 flex-1"
+              onchange="WorkoutBuilder.updateExercise(${ex._localId}, {exercise_name: this.value})"
+              placeholder="Nome do exercício" />
+            <select class="input-sm w-36 flex-shrink-0"
+              onchange="WorkoutBuilder.updateExercise(${ex._localId}, {muscle_group: this.value})">
+              <option value="">Grupo</option>
+              ${Object.entries(MUSCLE_LABELS).map(([v,l]) =>
+                `<option value="${v}" ${ex.muscle_group === v ? 'selected' : ''}>${l}</option>`
+              ).join('')}
+            </select>
+          </div>
+
+          <!-- Linha 2: séries, reps, carga, descanso -->
+          <div class="grid grid-cols-4 gap-2 mb-3">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Séries</label>
+              <input type="number" min="1" max="20" value="${ex.sets || ''}"
+                class="input-sm text-center font-mono"
+                onchange="WorkoutBuilder.updateExercise(${ex._localId}, {sets: parseInt(this.value)||null})"
+                placeholder="3" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Reps</label>
+              <input type="text" value="${escHtml(ex.reps || '')}"
+                class="input-sm text-center font-mono"
+                onchange="WorkoutBuilder.updateExercise(${ex._localId}, {reps: this.value})"
+                placeholder="12" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Carga</label>
+              <input type="text" value="${escHtml(ex.load || '')}"
+                class="input-sm text-center font-mono"
+                onchange="WorkoutBuilder.updateExercise(${ex._localId}, {load: this.value})"
+                placeholder="20kg" />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Descanso</label>
+              <input type="number" min="0" max="600" value="${ex.rest_seconds || ''}"
+                class="input-sm text-center font-mono"
+                onchange="WorkoutBuilder.updateExercise(${ex._localId}, {rest_seconds: parseInt(this.value)||null})"
+                placeholder="60s" />
+            </div>
+          </div>
+
+          <!-- Notas técnicas -->
+          <div class="mb-3">
+            <textarea class="input-sm text-sm"
+              oninput="autoResize(this); WorkoutBuilder.updateExercise(${ex._localId}, {technique_notes: this.value})"
+              placeholder="Notas técnicas (dicas de execução, restrições...)"
+              >${escHtml(ex.technique_notes || '')}</textarea>
+          </div>
+
+          <!-- URL do vídeo -->
+          <div class="mb-3">
+            <div class="relative">
+              <i data-lucide="youtube" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-red-400"></i>
+              <input type="url" value="${escHtml(ex.video_url || '')}"
+                class="input-sm pl-8 text-sm"
+                onchange="WorkoutBuilder.updateExercise(${ex._localId}, {video_url: this.value}); updateVideoPreview(${ex._localId}, this.value)"
+                placeholder="URL do vídeo (YouTube)" />
+            </div>
+          </div>
+
+          ${yt ? `
+          <div class="video-embed mb-3" id="video-${ex._localId}">
+            <iframe src="https://www.youtube.com/embed/${yt}" allowfullscreen loading="lazy"></iframe>
+          </div>` : `<div id="video-${ex._localId}"></div>`}
+
+          <!-- Linha inferior: superset toggle + remover -->
+          <div class="flex items-center justify-between">
+            <label class="superset-toggle ${isSuperset ? 'active' : ''}">
+              <input type="checkbox" ${isSuperset ? 'checked' : ''}
+                onchange="toggleSuperset(${ex._localId}, this.checked)" />
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M18 15l-6-6-6 6"/>
+              </svg>
+              Superset com anterior
+            </label>
+            <button onclick="confirmRemove(${ex._localId}, '${escHtml(ex.exercise_name)}')"
+              class="flex items-center gap-1 text-xs text-gray-400 hover:text-red-500
+                     transition-colors px-2 py-1 rounded-lg hover:bg-red-50">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Remover
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function updateVideoPreview(localId, url) {
+    const ytId = getYouTubeId(url);
+    const container = document.getElementById(`video-${localId}`);
+    if (!container) return;
+    if (ytId) {
+      container.innerHTML = `<div class="video-embed mb-3">
+        <iframe src="https://www.youtube.com/embed/${ytId}" allowfullscreen loading="lazy"></iframe>
+      </div>`;
+    } else {
+      container.innerHTML = '';
+    }
+  }
+
+  function getYouTubeId(url) {
+    if (!url) return null;
+    const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+    return m ? m[1] : null;
+  }
+
+  function toggleSuperset(localId, checked) {
+    const exercises = WorkoutBuilder.getExercises();
+    const idx = exercises.findIndex(e => e._localId === localId);
+    if (idx === -1) return;
+
+    let group = null;
+    if (checked) {
+      // Mesmo grupo do exercício anterior, ou novo grupo
+      const prev = exercises[idx - 1];
+      group = prev?.superset_group || (Math.max(...exercises.map(e => e.superset_group || 0)) + 1);
+    }
+    WorkoutBuilder.updateExercise(localId, { superset_group: group });
+    // Re-renderiza apenas este card para atualizar visual
+    renderExercises(WorkoutBuilder.getExercises());
+  }
+
+  function confirmRemove(localId, name) {
+    Modal.open({
+      title: 'Remover exercício',
+      body: `<p class="text-gray-600">Remover <strong>${escHtml(name)}</strong> da ficha?</p>`,
+      confirmLabel: 'Remover',
+      cancelLabel: 'Cancelar',
+      dangerous: true,
+      onConfirm: () => WorkoutBuilder.removeExercise(localId),
+    });
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  // ─── Status de auto-save ───
+  function updateSaveStatus(status) {
+    const el = document.getElementById('save-status');
+    const text = document.getElementById('save-status-text');
+    el.className = status;
+    const msgs = { pending: 'Alterações pendentes', saving: 'Salvando...', saved: 'Salvo automaticamente', error: 'Erro ao salvar' };
+    text.textContent = msgs[status] || '';
+    lucide.createIcons();
+  }
+
+  // ─── Modal de exercícios ───
+  function openExerciseModal() {
+    document.getElementById('exercise-modal').classList.remove('hidden');
+    document.getElementById('exercise-search').value = '';
+    document.getElementById('custom-exercise-name').value = '';
+    activeGroup = '';
+    document.querySelectorAll('.chip').forEach(c => c.classList.toggle('active', !c.dataset.group));
+    renderExerciseResults();
+    setTimeout(() => document.getElementById('exercise-search').focus(), 100);
+    lucide.createIcons();
+  }
+
+  function closeExerciseModal() {
+    document.getElementById('exercise-modal').classList.add('hidden');
+  }
+
+  document.getElementById('exercise-modal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('exercise-modal')) closeExerciseModal();
+  });
+
+  // Chips de filtro
+  document.querySelectorAll('.chip[data-group]').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      activeGroup = chip.dataset.group;
+      renderExerciseResults();
+    });
+  });
+
+  // Busca com debounce
+  let exSearchTimer;
+  document.getElementById('exercise-search').addEventListener('input', function() {
+    clearTimeout(exSearchTimer);
+    exSearchTimer = setTimeout(() => renderExerciseResults(), 300);
+  });
+
+  function renderExerciseResults() {
+    const query = document.getElementById('exercise-search').value;
+    const results = searchExercises(query, activeGroup || null);
+    const container = document.getElementById('exercise-results');
+
+    if (!results.length) {
+      container.innerHTML = `<p class="text-center text-sm text-gray-400 py-8">Nenhum exercício encontrado.</p>`;
+      return;
+    }
+
+    container.innerHTML = results.map(ex => `
+      <div class="exercise-row" onclick="selectExercise('${escHtml(ex.name)}', '${ex.group}')">
+        <div class="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0 text-xs">💪</div>
+        <div>
+          <div class="text-sm font-semibold text-gray-800">${escHtml(ex.name)}</div>
+          <div class="text-xs text-gray-400">${MUSCLE_LABELS[ex.group] || ex.group}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function selectExercise(name, group) {
+    WorkoutBuilder.addExercise({ exercise_name: name, muscle_group: group });
+    closeExerciseModal();
+  }
+
+  function addCustomExercise() {
+    const name = document.getElementById('custom-exercise-name').value.trim();
+    if (!name) { Toast.warning('Digite o nome do exercício.'); return; }
+    WorkoutBuilder.addExercise({ exercise_name: name });
+    closeExerciseModal();
+  }
+
+  // ─── Painel IA ───
+  function toggleAiPanel() {
+    const wrap = document.getElementById('ai-panel-wrap');
+    wrap.classList.toggle('hidden');
+  }
+
+  async function generateWithAI() {
+    const studentId = document.getElementById('student-id').value;
+    if (!studentId) { Toast.warning('Selecione um aluno primeiro.'); return; }
+
+    const btn      = document.getElementById('ai-generate-btn');
+    const btnText  = document.getElementById('ai-btn-text');
+    const spinner  = document.getElementById('ai-spinner');
+    btn.disabled   = true;
+    btnText.textContent = 'Gerando...';
+    spinner.classList.remove('hidden');
+
+    // Mostra skeletons
+    const list  = document.getElementById('exercise-list');
+    const empty = document.getElementById('empty-state');
+    empty.style.display = 'none';
+    list.innerHTML += Array(4).fill(`
+      <div class="exercise-card pointer-events-none">
+        <div class="flex gap-3">
+          <div class="ai-skeleton w-8 h-20 rounded-xl"></div>
+          <div class="flex-1 space-y-2">
+            <div class="ai-skeleton h-8 rounded-xl"></div>
+            <div class="ai-skeleton h-8 rounded-xl w-3/4"></div>
+            <div class="ai-skeleton h-16 rounded-xl"></div>
+          </div>
+        </div>
+      </div>`).join('');
+
+    const equipments = Array.from(document.querySelectorAll('.equipment-check:checked'))
+      .map(el => el.value);
+    const context  = document.getElementById('ai-context').value;
+    const category = document.getElementById('workout-category').value || 'A';
+
+    const result = await Api.post('/api/ai/generate-workout', {
+      student_id: studentId, context, equipments, category,
+    });
+
+    btn.disabled = false;
+    btnText.textContent = 'Gerar ficha completa';
+    spinner.classList.add('hidden');
+
+    if (!result.success) {
+      Toast.error(result.message || 'Erro ao gerar treino.');
+      renderExercises(WorkoutBuilder.getExercises());
+      return;
+    }
+
+    // Preenche título se vazio
+    if (!document.getElementById('workout-title').value && result.data.title) {
+      document.getElementById('workout-title').value = result.data.title;
+    }
+
+    // Adiciona exercícios gerados
+    for (const ex of result.data.exercises) {
+      await WorkoutBuilder.addExercise(ex);
+    }
+
+    Toast.success(`${result.data.exercises.length} exercícios gerados pela IA!`);
+  }
+
+  // ─── Salvar ficha ───
+  async function saveWorkout() {
+    // Ignora cliques residuais disparados logo após um drag
+    if (WorkoutBuilder.justFinishedDrag()) return;
+
+    const title     = document.getElementById('workout-title').value.trim();
+    const studentId = document.getElementById('student-id').value;
+
+    if (!title)     { Toast.error('Informe o nome da ficha.'); return; }
+    if (!studentId) { Toast.error('Selecione um aluno.'); return; }
+
+    const exercises = WorkoutBuilder.getExercises();
+    if (!exercises.length) { Toast.warning('Adicione ao menos um exercício.'); return; }
+
+    const btn     = document.getElementById('save-workout-btn');
+    const btnText = document.getElementById('save-btn-text');
+    const spinner = document.getElementById('save-btn-spinner');
+    const icon    = document.getElementById('save-btn-icon');
+    btn.disabled  = true;
+    btnText.textContent = 'Salvando...';
+    spinner.classList.remove('hidden');
+    icon.style.display = 'none';
+
+    const payload = {
+      title,
+      student_id:  studentId,
+      description: document.getElementById('workout-desc').value.trim() || null,
+      category:    document.getElementById('workout-category').value || null,
+      starts_at:   document.getElementById('workout-starts').value || null,
+      ends_at:     document.getElementById('workout-ends').value || null,
+    };
+
+    let workoutId = WorkoutBuilder.getWorkoutId();
+
+    if (workoutId) {
+      // Atualiza metadados da ficha existente
+      await Api.patch(`/api/workouts/${workoutId}`, payload);
+    } else {
+      // Cria ficha nova
+      const result = await Api.post('/api/workouts/', payload);
+      if (!result.success) {
+        Toast.error(result.message || 'Erro ao salvar ficha.');
+        btn.disabled = false;
+        btnText.textContent = 'Salvar ficha';
+        spinner.classList.add('hidden');
+        icon.style.display = '';
+        lucide.createIcons();
+        return;
+      }
+      workoutId = result.data.workout.id;
+      WorkoutBuilder.setWorkoutId(workoutId);
+      updatePublicLink(workoutId);
+
+      // Persiste exercícios na ficha recém-criada
+      for (const ex of exercises) {
+        if (!ex.id) {
+          await Api.post(`/api/workouts/${workoutId}/exercises`, {
+            exercise_name: ex.exercise_name, muscle_group: ex.muscle_group,
+            sets: ex.sets, reps: ex.reps, load: ex.load,
+            rest_seconds: ex.rest_seconds, technique_notes: ex.technique_notes,
+            video_url: ex.video_url, position: ex.position,
+            superset_group: ex.superset_group,
+          });
+        }
+      }
+    }
+
+    btn.disabled = false;
+    btnText.textContent = 'Salvo!';
+    spinner.classList.add('hidden');
+    icon.style.display = '';
+    lucide.createIcons();
+    Toast.success('Ficha salva com sucesso!');
+
+    // Redireciona para perfil do aluno após 1.5s
+    setTimeout(() => {
+      window.location.href = `/frontend/trainer/students/detail.html?id=${studentId}#workouts`;
+    }, 1500);
+  }
+
+  function updatePublicLink(workoutId) {
+    if (!workoutId || !selectedStudent) return;
+    const token = selectedStudent.access_token;
+    if (!token) return;
+    const url = `${window.location.origin}/frontend/student/workout.html?token=${token}&workout=${workoutId}`;
+    document.getElementById('public-link').href = url;
+    document.getElementById('public-link').textContent = url;
+    document.getElementById('public-link-wrap').classList.remove('hidden');
+  }
+
+  function copyPublicLink() {
+    const url = document.getElementById('public-link').href;
+    navigator.clipboard.writeText(url).then(() => Toast.success('Link copiado!'));
+  }
+
+  function escHtml(str = '') {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  }
+
+  // Fecha modal com Esc
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeExerciseModal();
+  });
+</script>
+</body>
+</html>

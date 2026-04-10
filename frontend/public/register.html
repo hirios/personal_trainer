@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Criar conta — FitFlow Pro</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    :root {
+      --brand-primary: #22C55E;
+      --brand-dark: #15803D;
+      --gray-50: #F8FAFC;
+      --gray-900: #0F172A;
+      --gray-500: #64748B;
+      --gray-200: #E2E8F0;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--gray-50);
+      min-height: 100vh;
+      margin: 0;
+    }
+    h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    .input-field {
+      width: 100%; padding: 12px 16px 12px 44px;
+      border: 1.5px solid var(--gray-200); border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px;
+      color: var(--gray-900); background: #fff;
+      transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+    }
+    .input-field.no-icon { padding-left: 16px; }
+    .input-field:focus {
+      border-color: var(--brand-primary);
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.12);
+    }
+    .input-field.error { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,0.1); }
+    .input-field.valid { border-color: var(--brand-primary); }
+
+    .input-wrap { position: relative; }
+    .input-icon {
+      position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+      color: #94A3B8; pointer-events: none; display: flex;
+    }
+    .input-toggle {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      color: #94A3B8; cursor: pointer; background: none; border: none;
+      padding: 0; display: flex; align-items: center;
+    }
+    .input-toggle:hover { color: var(--gray-500); }
+
+    .field-error { font-size: 12px; color: #EF4444; margin-top: 4px; display: none; }
+    .field-error.visible { display: block; }
+    .field-hint { font-size: 12px; color: #94A3B8; margin-top: 4px; }
+
+    .btn-primary {
+      width: 100%; padding: 14px; background: var(--brand-primary);
+      color: #fff; border: none; border-radius: 12px;
+      font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 700;
+      cursor: pointer; transition: background 0.2s, transform 0.1s, opacity 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--brand-dark); }
+    .btn-primary:active:not(:disabled) { transform: scale(0.99); }
+    .btn-primary:disabled { opacity: 0.65; cursor: not-allowed; }
+
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,0.35);
+      border-top-color: #fff; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Indicador de força da senha */
+    .password-strength {
+      display: flex; gap: 4px; margin-top: 8px;
+    }
+    .strength-bar {
+      flex: 1; height: 4px; border-radius: 4px;
+      background: #E2E8F0;
+      transition: background 0.3s;
+    }
+    .strength-label {
+      font-size: 12px; margin-top: 4px;
+      font-weight: 500;
+    }
+
+    /* Checkbox customizado */
+    .checkbox-wrap {
+      display: flex; align-items: flex-start; gap: 10px; cursor: pointer;
+    }
+    .checkbox-input {
+      width: 18px; height: 18px; flex-shrink: 0;
+      border: 1.5px solid var(--gray-200); border-radius: 5px;
+      background: #fff; appearance: none; cursor: pointer;
+      transition: all 0.15s; margin-top: 1px;
+    }
+    .checkbox-input:checked {
+      background: var(--brand-primary); border-color: var(--brand-primary);
+    }
+    .checkbox-input:checked::after {
+      content: '';
+      display: block; width: 10px; height: 6px;
+      border-left: 2px solid #fff; border-bottom: 2px solid #fff;
+      transform: rotate(-45deg) translate(2px, 1px);
+      margin: 3px auto 0;
+    }
+
+    .auth-card {
+      background: #fff; border-radius: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.06);
+      border: 1px solid var(--gray-200);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="min-h-screen flex items-start lg:items-center justify-center py-8 px-4">
+    <div class="w-full max-w-lg">
+
+      <!-- Logo -->
+      <div class="flex items-center gap-3 mb-8 justify-center">
+        <div class="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center">
+          <i data-lucide="dumbbell" class="w-4 h-4 text-white"></i>
+        </div>
+        <span class="font-bold text-xl text-gray-900" style="font-family:'Plus Jakarta Sans',sans-serif;">
+          FitFlow <strong>Pro</strong>
+        </span>
+      </div>
+
+      <!-- Card -->
+      <div class="auth-card p-8">
+        <div class="mb-7">
+          <h1 class="text-2xl font-extrabold text-gray-900 mb-1">Criar sua conta</h1>
+          <p class="text-gray-500 text-sm">Comece grátis. Sem cartão de crédito necessário.</p>
+        </div>
+
+        <!-- Erro global -->
+        <div id="form-error" class="hidden mb-5 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+          <i data-lucide="circle-x" class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5"></i>
+          <p id="form-error-text" class="text-red-700 text-sm"></p>
+        </div>
+
+        <form id="register-form" novalidate>
+          <!-- Nome completo -->
+          <div class="mb-4">
+            <label for="name" class="block text-sm font-semibold text-gray-700 mb-2">
+              Nome completo <span class="text-red-500">*</span>
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon"><i data-lucide="user" class="w-4 h-4"></i></span>
+              <input type="text" id="name" name="name" class="input-field"
+                placeholder="Seu nome completo" autocomplete="name" required />
+            </div>
+            <span class="field-error" id="name-error">Informe seu nome completo.</span>
+          </div>
+
+          <!-- E-mail -->
+          <div class="mb-4">
+            <label for="email" class="block text-sm font-semibold text-gray-700 mb-2">
+              E-mail <span class="text-red-500">*</span>
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon"><i data-lucide="mail" class="w-4 h-4"></i></span>
+              <input type="email" id="email" name="email" class="input-field"
+                placeholder="seu@email.com" autocomplete="email" required />
+            </div>
+            <span class="field-error" id="email-error">Informe um e-mail válido.</span>
+          </div>
+
+          <!-- Telefone + CREF (grid 2 cols) -->
+          <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+              <label for="phone" class="block text-sm font-semibold text-gray-700 mb-2">
+                Telefone / WhatsApp
+              </label>
+              <div class="input-wrap">
+                <span class="input-icon"><i data-lucide="smartphone" class="w-4 h-4"></i></span>
+                <input type="tel" id="phone" name="phone" class="input-field"
+                  placeholder="(11) 99999-9999" autocomplete="tel" />
+              </div>
+            </div>
+            <div>
+              <label for="cref" class="block text-sm font-semibold text-gray-700 mb-2">
+                CREF <span class="text-gray-400 font-normal">(opcional)</span>
+              </label>
+              <div class="input-wrap">
+                <span class="input-icon"><i data-lucide="badge" class="w-4 h-4"></i></span>
+                <input type="text" id="cref" name="cref" class="input-field"
+                  placeholder="000000-G/SP" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Senha -->
+          <div class="mb-4">
+            <label for="password" class="block text-sm font-semibold text-gray-700 mb-2">
+              Senha <span class="text-red-500">*</span>
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon"><i data-lucide="lock" class="w-4 h-4"></i></span>
+              <input type="password" id="password" name="password" class="input-field"
+                placeholder="Mínimo 8 caracteres" autocomplete="new-password" required />
+              <button type="button" class="input-toggle" id="toggle-password" aria-label="Mostrar/ocultar senha">
+                <i data-lucide="eye" class="w-4 h-4" id="eye-icon"></i>
+              </button>
+            </div>
+            <!-- Indicador de força -->
+            <div class="password-strength" id="strength-bars">
+              <div class="strength-bar" id="bar-1"></div>
+              <div class="strength-bar" id="bar-2"></div>
+              <div class="strength-bar" id="bar-3"></div>
+              <div class="strength-bar" id="bar-4"></div>
+            </div>
+            <p class="strength-label" id="strength-label" style="color:#94A3B8;"></p>
+            <span class="field-error" id="password-error">A senha deve ter no mínimo 8 caracteres.</span>
+          </div>
+
+          <!-- Confirmar senha -->
+          <div class="mb-6">
+            <label for="confirm-password" class="block text-sm font-semibold text-gray-700 mb-2">
+              Confirmar senha <span class="text-red-500">*</span>
+            </label>
+            <div class="input-wrap">
+              <span class="input-icon"><i data-lucide="lock-keyhole" class="w-4 h-4"></i></span>
+              <input type="password" id="confirm-password" name="confirm-password" class="input-field"
+                placeholder="Repita a senha" autocomplete="new-password" required />
+              <button type="button" class="input-toggle" id="toggle-confirm" aria-label="Mostrar/ocultar senha">
+                <i data-lucide="eye" class="w-4 h-4" id="eye-icon-confirm"></i>
+              </button>
+            </div>
+            <span class="field-error" id="confirm-error">As senhas não coincidem.</span>
+          </div>
+
+          <!-- Termos de uso -->
+          <div class="mb-6">
+            <label class="checkbox-wrap">
+              <input type="checkbox" id="terms" class="checkbox-input" required />
+              <span class="text-sm text-gray-600">
+                Li e concordo com os
+                <a href="#" class="text-green-600 hover:text-green-700 font-medium">Termos de Uso</a>
+                e a
+                <a href="#" class="text-green-600 hover:text-green-700 font-medium">Política de Privacidade</a>
+              </span>
+            </label>
+            <span class="field-error" id="terms-error">Você deve aceitar os termos para continuar.</span>
+          </div>
+
+          <!-- Botão -->
+          <button type="submit" class="btn-primary" id="submit-btn">
+            <span id="btn-text">Criar conta grátis</span>
+            <span id="btn-spinner" class="spinner hidden"></span>
+          </button>
+        </form>
+      </div>
+
+      <!-- Link para login -->
+      <p class="text-center text-sm text-gray-500 mt-6">
+        Já tem conta?
+        <a href="/frontend/public/login.html" class="text-green-600 font-semibold hover:text-green-700">
+          Fazer login
+        </a>
+      </p>
+    </div>
+  </div>
+
+  <script>window.API_BASE_URL = "http://localhost:5000";</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+
+  <script>
+    lucide.createIcons();
+
+    // Redireciona se já estiver logado
+    if (Auth.isLoggedIn()) {
+      window.location.href = '/frontend/trainer/index.html';
+    }
+
+    const nameInput       = document.getElementById('name');
+    const emailInput      = document.getElementById('email');
+    const phoneInput      = document.getElementById('phone');
+    const crefInput       = document.getElementById('cref');
+    const passwordInput   = document.getElementById('password');
+    const confirmInput    = document.getElementById('confirm-password');
+    const termsInput      = document.getElementById('terms');
+    const submitBtn       = document.getElementById('submit-btn');
+    const formError       = document.getElementById('form-error');
+    const formErrorText   = document.getElementById('form-error-text');
+
+    // --- Toggle de visibilidade das senhas ---
+    function setupToggle(btnId, inputEl, iconId) {
+      document.getElementById(btnId).addEventListener('click', () => {
+        const show = inputEl.type === 'password';
+        inputEl.type = show ? 'text' : 'password';
+        document.getElementById(iconId).setAttribute('data-lucide', show ? 'eye-off' : 'eye');
+        lucide.createIcons();
+      });
+    }
+    setupToggle('toggle-password', passwordInput, 'eye-icon');
+    setupToggle('toggle-confirm', confirmInput, 'eye-icon-confirm');
+
+    // --- Indicador de força da senha ---
+    const STRENGTH_CONFIGS = [
+      { label: '',          color: '#E2E8F0' },
+      { label: 'Fraca',     color: '#EF4444' },
+      { label: 'Regular',   color: '#F97316' },
+      { label: 'Boa',       color: '#EAB308' },
+      { label: 'Forte',     color: '#22C55E' },
+    ];
+
+    function calcStrength(pwd) {
+      let score = 0;
+      if (pwd.length >= 8)  score++;
+      if (pwd.length >= 12) score++;
+      if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+      if (/[0-9]/.test(pwd)) score++;
+      if (/[^A-Za-z0-9]/.test(pwd)) score++;
+      return Math.min(4, score);
+    }
+
+    passwordInput.addEventListener('input', () => {
+      const pwd = passwordInput.value;
+      const strength = pwd.length === 0 ? 0 : Math.max(1, calcStrength(pwd));
+      const cfg = STRENGTH_CONFIGS[strength];
+
+      for (let i = 1; i <= 4; i++) {
+        const bar = document.getElementById(`bar-${i}`);
+        bar.style.background = i <= strength ? cfg.color : '#E2E8F0';
+      }
+
+      const label = document.getElementById('strength-label');
+      label.textContent = pwd.length === 0 ? '' : cfg.label;
+      label.style.color = cfg.color;
+
+      // Limpa erro ao digitar
+      passwordInput.classList.remove('error');
+      document.getElementById('password-error').classList.remove('visible');
+    });
+
+    // --- Validação em tempo real ---
+    function showError(inputEl, errorId, msg) {
+      inputEl.classList.add('error');
+      inputEl.classList.remove('valid');
+      const el = document.getElementById(errorId);
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function clearError(inputEl, errorId) {
+      inputEl.classList.remove('error');
+      document.getElementById(errorId).classList.remove('visible');
+    }
+
+    function markValid(inputEl) {
+      inputEl.classList.remove('error');
+      inputEl.classList.add('valid');
+    }
+
+    emailInput.addEventListener('blur', () => {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim())) {
+        showError(emailInput, 'email-error', 'Informe um e-mail válido.');
+      } else {
+        clearError(emailInput, 'email-error');
+        markValid(emailInput);
+      }
+    });
+
+    passwordInput.addEventListener('blur', () => {
+      if (passwordInput.value.length < 8) {
+        showError(passwordInput, 'password-error', 'A senha deve ter no mínimo 8 caracteres.');
+      } else {
+        clearError(passwordInput, 'password-error');
+      }
+    });
+
+    confirmInput.addEventListener('input', () => {
+      if (confirmInput.value && confirmInput.value !== passwordInput.value) {
+        showError(confirmInput, 'confirm-error', 'As senhas não coincidem.');
+      } else {
+        clearError(confirmInput, 'confirm-error');
+        if (confirmInput.value) markValid(confirmInput);
+      }
+    });
+
+    // Máscara simples de telefone
+    phoneInput.addEventListener('input', () => {
+      let v = phoneInput.value.replace(/\D/g, '').slice(0, 11);
+      if (v.length > 10) v = v.replace(/^(\d{2})(\d{5})(\d{4})$/, '($1) $2-$3');
+      else if (v.length > 6) v = v.replace(/^(\d{2})(\d{4})(\d{0,4})$/, '($1) $2-$3');
+      else if (v.length > 2) v = v.replace(/^(\d{2})(\d{0,5})$/, '($1) $2');
+      else if (v.length > 0) v = v.replace(/^(\d{0,2})$/, '($1');
+      phoneInput.value = v;
+    });
+
+    function showFormError(msg) {
+      formErrorText.textContent = msg;
+      formError.classList.remove('hidden');
+      formError.classList.add('flex');
+      lucide.createIcons();
+    }
+
+    function hideFormError() {
+      formError.classList.add('hidden');
+      formError.classList.remove('flex');
+    }
+
+    function setLoading(loading) {
+      submitBtn.disabled = loading;
+      document.getElementById('btn-text').textContent = loading ? 'Criando conta...' : 'Criar conta grátis';
+      document.getElementById('btn-spinner').classList.toggle('hidden', !loading);
+    }
+
+    // --- Submit ---
+    document.getElementById('register-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      hideFormError();
+
+      let valid = true;
+
+      if (!nameInput.value.trim() || nameInput.value.trim().split(' ').length < 2) {
+        showError(nameInput, 'name-error', 'Informe seu nome completo (nome e sobrenome).');
+        valid = false;
+      }
+
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailInput.value.trim())) {
+        showError(emailInput, 'email-error', 'Informe um e-mail válido.');
+        valid = false;
+      }
+
+      if (passwordInput.value.length < 8) {
+        showError(passwordInput, 'password-error', 'A senha deve ter no mínimo 8 caracteres.');
+        valid = false;
+      }
+
+      if (confirmInput.value !== passwordInput.value) {
+        showError(confirmInput, 'confirm-error', 'As senhas não coincidem.');
+        valid = false;
+      }
+
+      if (!termsInput.checked) {
+        document.getElementById('terms-error').classList.add('visible');
+        valid = false;
+      } else {
+        document.getElementById('terms-error').classList.remove('visible');
+      }
+
+      if (!valid) return;
+
+      setLoading(true);
+
+      const payload = {
+        name: nameInput.value.trim(),
+        email: emailInput.value.trim().toLowerCase(),
+        password: passwordInput.value,
+        phone: phoneInput.value.replace(/\D/g, '') || null,
+        cref: crefInput.value.trim() || null,
+      };
+
+      const result = await Api.post('/api/auth/register', payload);
+
+      if (result.success && result.data) {
+        // Salva tokens e redireciona
+        Api._saveTokens(result.data.access_token, result.data.refresh_token);
+        sessionStorage.setItem('fitflow_user', JSON.stringify(result.data.user));
+        Toast.success('Conta criada com sucesso! Bem-vindo ao FitFlow Pro!');
+        setTimeout(() => { window.location.href = '/frontend/trainer/index.html'; }, 1200);
+      } else {
+        setLoading(false);
+        showFormError(result.message || 'Erro ao criar conta. Tente novamente.');
+      }
+    });
+  </script>
+</body>
+</html>

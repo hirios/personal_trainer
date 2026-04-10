@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Meu Treino — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green: #22C55E;
+      --green-dark: #15803D;
+      --orange: #F97316;
+      --gray-900: #0F172A;
+      --gray-600: #475569;
+      --gray-400: #94A3B8;
+      --gray-100: #F1F5F9;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #F8FAFC;
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* ── Header ── */
+    #header {
+      position: sticky; top: 0; z-index: 50;
+      background: #fff; border-bottom: 1px solid #F1F5F9;
+      padding: 12px 20px;
+    }
+    .header-inner {
+      max-width: 480px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .trainer-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      object-fit: cover; flex-shrink: 0;
+    }
+    .trainer-avatar-init {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--green); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; flex-shrink: 0;
+    }
+    .header-text { flex: 1; min-width: 0; }
+    .header-trainer { font-size: 11px; color: var(--gray-400); }
+    .header-student { font-size: 14px; font-weight: 700; color: var(--gray-900);
+                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* ── Barra de progresso ── */
+    #progress-bar-wrap {
+      background: #F1F5F9; height: 4px; width: 100%; overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%; background: var(--green);
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ── Contador de exercícios ── */
+    #progress-label {
+      text-align: center; padding: 10px 20px 0;
+      font-size: 12px; font-weight: 600; color: var(--gray-400);
+      letter-spacing: 0.05em; text-transform: uppercase;
+    }
+
+    /* ── Container principal ── */
+    #exercise-view {
+      max-width: 480px; margin: 0 auto;
+      padding: 16px 20px 120px;
+      min-height: calc(100dvh - 120px);
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Card do exercício ── */
+    #exercise-card {
+      background: #fff; border-radius: 24px;
+      border: 1px solid #F1F5F9;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+      padding: 24px;
+      flex: 1;
+      transform: translateX(0);
+      transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s;
+    }
+    #exercise-card.slide-out-left  { transform: translateX(-60px); opacity: 0; }
+    #exercise-card.slide-out-right { transform: translateX( 60px); opacity: 0; }
+    #exercise-card.slide-in-right  { transform: translateX( 60px); opacity: 0; }
+    #exercise-card.slide-in-left   { transform: translateX(-60px); opacity: 0; }
+
+    /* Superset indicator */
+    .superset-indicator {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 700;
+      color: var(--orange); margin-bottom: 10px;
+      letter-spacing: 0.04em;
+    }
+    .superset-bar {
+      width: 4px; height: 24px; background: var(--orange);
+      border-radius: 2px; flex-shrink: 0;
+    }
+
+    /* Grupo muscular badge */
+    .muscle-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 12px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      background: #F0FDF4; color: var(--green-dark);
+      text-transform: uppercase; letter-spacing: 0.06em;
+      margin-bottom: 8px;
+    }
+
+    /* Nome do exercício */
+    .exercise-name {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 26px; font-weight: 800;
+      color: var(--gray-900); line-height: 1.2;
+      margin-bottom: 20px;
+    }
+
+    /* Métricas: séries × reps × carga */
+    .metrics-row {
+      display: flex; gap: 12px; margin-bottom: 20px;
+    }
+    .metric-card {
+      flex: 1; background: #F8FAFC; border-radius: 16px;
+      padding: 14px 8px; text-align: center;
+    }
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px; font-weight: 700;
+      color: var(--gray-900); display: block;
+    }
+    .metric-label {
+      font-size: 10px; font-weight: 600; color: var(--gray-400);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-top: 2px;
+    }
+
+    /* Descanso display */
+    .rest-info {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 13px; color: var(--gray-400); margin-bottom: 16px;
+    }
+
+    /* Notas técnicas */
+    .technique-box {
+      background: #FFFBEB; border: 1px solid #FDE68A;
+      border-radius: 14px; padding: 14px;
+      margin-bottom: 16px;
+    }
+    .technique-label {
+      font-size: 10px; font-weight: 700; color: #92400E;
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px;
+    }
+    .technique-text {
+      font-size: 13px; color: #78350F; line-height: 1.6;
+    }
+
+    /* Botão de vídeo */
+    .video-btn {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px; border-radius: 12px;
+      background: #FEF2F2; color: #DC2626;
+      border: none; font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+      margin-bottom: 16px;
+    }
+    .video-btn:hover { background: #FEE2E2; }
+
+    /* ── Timer de descanso ── */
+    #rest-timer-section { margin-bottom: 16px; }
+    #start-rest-btn {
+      width: 100%; padding: 14px; border-radius: 14px;
+      background: #F0FDF4; border: 1.5px solid #BBF7D0;
+      color: var(--green-dark); font-size: 14px; font-weight: 700;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 8px; transition: all 0.15s;
+    }
+    #start-rest-btn:hover { background: #DCFCE7; }
+    #start-rest-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    #timer-display {
+      display: none; text-align: center;
+      padding: 16px; background: #F0FDF4;
+      border-radius: 14px; border: 1.5px solid #BBF7D0;
+    }
+    .timer-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 48px; font-weight: 700;
+      color: var(--green-dark); display: block; line-height: 1;
+    }
+    .timer-label { font-size: 12px; color: var(--green); font-weight: 600; margin-top: 4px; }
+    .timer-cancel {
+      margin-top: 10px; font-size: 12px; color: var(--gray-400);
+      background: none; border: none; cursor: pointer; text-decoration: underline;
+    }
+
+    /* ── Navegação inferior ── */
+    #nav-footer {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #F1F5F9;
+      padding: 12px 20px; padding-bottom: max(12px, env(safe-area-inset-bottom));
+      z-index: 40;
+    }
+    .nav-inner {
+      max-width: 480px; margin: 0 auto;
+      display: flex; gap: 12px; align-items: center;
+    }
+    .nav-btn {
+      flex: 1; padding: 14px; border-radius: 14px;
+      font-size: 15px; font-weight: 700; border: none;
+      cursor: pointer; display: flex; align-items: center;
+      justify-content: center; gap: 8px; transition: all 0.15s;
+    }
+    .nav-btn:active { transform: scale(0.97); }
+    .nav-btn-prev {
+      background: #F8FAFC; color: var(--gray-600);
+      border: 1.5px solid #E2E8F0;
+    }
+    .nav-btn-prev:hover { background: #F1F5F9; }
+    .nav-btn-next {
+      background: var(--green); color: #fff;
+      box-shadow: 0 4px 12px rgba(34,197,94,0.3);
+    }
+    .nav-btn-next:hover { background: var(--green-dark); }
+    .nav-btn-finish {
+      background: var(--green-dark); color: #fff;
+      box-shadow: 0 4px 12px rgba(21,128,61,0.3);
+    }
+
+    /* ── Tela de conclusão ── */
+    #completion-screen {
+      display: none; min-height: 100dvh;
+      flex-direction: column; align-items: center;
+      justify-content: center; padding: 40px 24px;
+      text-align: center;
+    }
+    .confetti-wrap { font-size: 64px; margin-bottom: 24px; animation: bounce 0.6s ease; }
+    @keyframes bounce {
+      0% { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+      60% { transform: scale(1.2) rotate(5deg); }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+    .completion-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 28px; font-weight: 800; color: var(--gray-900); margin-bottom: 8px;
+    }
+    .completion-subtitle { font-size: 15px; color: var(--gray-600); margin-bottom: 32px; }
+    .completion-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 32px; background: var(--green); color: #fff;
+      border-radius: 16px; font-size: 15px; font-weight: 700;
+      border: none; cursor: pointer; transition: background 0.15s;
+      text-decoration: none;
+    }
+    .completion-btn:hover { background: var(--green-dark); }
+
+    /* ── Modal de vídeo ── */
+    #video-modal {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,0.92); display: none;
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    #video-modal.open { display: flex; }
+    #video-close {
+      position: absolute; top: 16px; right: 16px;
+      width: 40px; height: 40px; border-radius: 50%;
+      background: rgba(255,255,255,0.15); color: #fff;
+      border: none; cursor: pointer; font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #video-frame { width: 100%; max-width: 560px; aspect-ratio: 16/9; }
+    #video-frame iframe { width: 100%; height: 100%; border: none; border-radius: 12px; }
+
+    /* Loading */
+    #loading-screen {
+      min-height: 100dvh; display: flex;
+      flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .loading-spinner {
+      width: 40px; height: 40px;
+      border: 3px solid #E2E8F0; border-top-color: var(--green);
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div id="loading-screen">
+  <div class="loading-spinner"></div>
+  <p style="font-size:14px;color:#94A3B8;">Carregando treino...</p>
+</div>
+
+<!-- Tela principal (oculta até carregar) -->
+<div id="main-screen" style="display:none;">
+
+  <!-- Header -->
+  <div id="header">
+    <div class="header-inner">
+      <div id="trainer-avatar-wrap"></div>
+      <div class="header-text">
+        <div class="header-trainer" id="trainer-name"></div>
+        <div class="header-student" id="student-name-header"></div>
+      </div>
+      <div style="font-size:12px;color:#94A3B8;font-weight:600;" id="workout-name-header"></div>
+      <a id="btn-back-index" href="#"
+         style="flex-shrink:0;width:32px;height:32px;border-radius:50%;
+                background:#F1F5F9;display:flex;align-items:center;justify-content:center;
+                color:#64748B;text-decoration:none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2.5"
+             stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Barra de progresso -->
+  <div id="progress-bar-wrap"><div id="progress-bar" style="width:0%"></div></div>
+  <div id="progress-label"></div>
+
+  <!-- Vista do exercício -->
+  <div id="exercise-view">
+    <div id="exercise-card">
+      <!-- Preenchido via JS -->
+    </div>
+  </div>
+
+  <!-- Navegação inferior -->
+  <div id="nav-footer">
+    <div class="nav-inner">
+      <button class="nav-btn nav-btn-prev" id="prev-btn" onclick="navigate(-1)">
+        ← Anterior
+      </button>
+      <button class="nav-btn nav-btn-next" id="next-btn" onclick="navigate(1)">
+        Próximo →
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Tela de conclusão -->
+<div id="completion-screen">
+  <div class="confetti-wrap">🎉</div>
+  <h2 class="completion-title">Treino concluído!</h2>
+  <p class="completion-subtitle" id="completion-msg">Parabéns! Você completou todos os exercícios.</p>
+  <button class="completion-btn" onclick="restartWorkout()">
+    🔄 Recomeçar treino
+  </button>
+</div>
+
+<!-- Modal de vídeo -->
+<div id="video-modal">
+  <button id="video-close" onclick="closeVideo()">✕</button>
+  <div id="video-frame"></div>
+</div>
+
+<script>window.API_BASE_URL = "http://localhost:5000";</script>
+<script>
+  const params   = new URLSearchParams(window.location.search);
+  const TOKEN    = params.get('token');
+  const WORKOUT_ID = params.get('workout');
+
+  let workout    = null;
+  let exercises  = [];
+  let currentIdx = 0;
+  let timerInterval = null;
+  let timerSeconds  = 0;
+  let audioCtx = null;
+
+  const MUSCLE_LABELS = {
+    peito:'Peito', costas:'Costas', ombro:'Ombro', biceps:'Bíceps',
+    triceps:'Tríceps', pernas:'Pernas', abdomen:'Abdômen',
+    cardio:'Cardio', funcional:'Funcional',
+  };
+
+  // ── Carregar treino ──
+  async function loadWorkout() {
+    if (!TOKEN || !WORKOUT_ID) {
+      showError('Link inválido.'); return;
+    }
+
+    try {
+      const res = await fetch(
+        `${window.API_BASE_URL}/api/workouts/public/${WORKOUT_ID}?token=${TOKEN}`
+      );
+      const result = await res.json();
+
+      if (!result.success) { showError(result.message || 'Treino não encontrado.'); return; }
+
+      workout   = result.data.workout;
+      exercises = workout.exercises || [];
+
+      if (!exercises.length) { showError('Esta ficha não tem exercícios.'); return; }
+
+      // Header
+      renderHeader();
+
+      document.getElementById('loading-screen').style.display = 'none';
+      document.getElementById('main-screen').style.display = 'block';
+
+      document.getElementById('btn-back-index').href =
+        `/frontend/student/index.html?token=${encodeURIComponent(TOKEN)}`;
+
+      renderExercise(0);
+    } catch (e) {
+      showError('Erro de conexão. Tente novamente.');
+    }
+  }
+
+  function renderHeader() {
+    document.title = `${workout.title} — FitFlow Pro`;
+
+    const avatarWrap = document.getElementById('trainer-avatar-wrap');
+    if (workout.trainer_avatar) {
+      avatarWrap.innerHTML = `<img src="${workout.trainer_avatar}" class="trainer-avatar" alt="PT" />`;
+    } else {
+      const initials = (workout.trainer_name || 'PT').split(' ').slice(0,2)
+        .map(n=>n[0]).join('').toUpperCase();
+      avatarWrap.innerHTML = `<div class="trainer-avatar-init">${initials}</div>`;
+    }
+
+    document.getElementById('trainer-name').textContent =
+      `Trainer: ${workout.trainer_name || ''}`;
+    document.getElementById('student-name-header').textContent = workout.student_name || '';
+    document.getElementById('workout-name-header').textContent = workout.title;
+  }
+
+  // ── Render do exercício atual ──
+  function renderExercise(idx, direction = 'none') {
+    const ex = exercises[idx];
+    if (!ex) return;
+
+    currentIdx = idx;
+    const total = exercises.length;
+
+    // Barra de progresso
+    document.getElementById('progress-bar').style.width = `${((idx + 1) / total) * 100}%`;
+    document.getElementById('progress-label').textContent =
+      `Exercício ${idx + 1} de ${total}`;
+
+    // Navegação
+    document.getElementById('prev-btn').style.opacity = idx === 0 ? '0.3' : '1';
+    document.getElementById('prev-btn').disabled = idx === 0;
+
+    const nextBtn = document.getElementById('next-btn');
+    if (idx === total - 1) {
+      nextBtn.textContent = '✓ Concluir treino';
+      nextBtn.className = 'nav-btn nav-btn-finish';
+      nextBtn.onclick = finishWorkout;
+    } else {
+      nextBtn.textContent = 'Próximo →';
+      nextBtn.className = 'nav-btn nav-btn-next';
+      nextBtn.onclick = () => navigate(1);
+    }
+
+    // Animação de troca
+    const card = document.getElementById('exercise-card');
+    if (direction !== 'none') {
+      card.classList.add(direction === 1 ? 'slide-out-left' : 'slide-out-right');
+      setTimeout(() => {
+        card.classList.remove('slide-out-left', 'slide-out-right');
+        card.classList.add(direction === 1 ? 'slide-in-right' : 'slide-in-left');
+        fillCard(ex);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            card.classList.remove('slide-in-right', 'slide-in-left');
+          });
+        });
+      }, 200);
+    } else {
+      fillCard(ex);
+    }
+
+    // Para timer ao trocar de exercício
+    stopTimer();
+  }
+
+  function fillCard(ex) {
+    const muscleLabel = MUSCLE_LABELS[ex.muscle_group] || ex.muscle_group || '';
+    const isSuperset  = !!ex.superset_group;
+    const restSec     = ex.rest_seconds || 60;
+    const ytId        = getYouTubeId(ex.video_url || '');
+
+    document.getElementById('exercise-card').innerHTML = `
+      ${isSuperset ? `
+        <div class="superset-indicator">
+          <div class="superset-bar"></div>
+          SUPERSET
+        </div>` : ''}
+
+      ${muscleLabel ? `<div class="muscle-badge">💪 ${escHtml(muscleLabel)}</div>` : ''}
+
+      <div class="exercise-name">${escHtml(ex.exercise_name)}</div>
+
+      <!-- Métricas -->
+      <div class="metrics-row">
+        ${ex.sets ? `<div class="metric-card">
+          <span class="metric-value">${ex.sets}</span>
+          <span class="metric-label">Séries</span>
+        </div>` : ''}
+        ${ex.reps ? `<div class="metric-card">
+          <span class="metric-value">${escHtml(ex.reps)}</span>
+          <span class="metric-label">Repetições</span>
+        </div>` : ''}
+        ${ex.load ? `<div class="metric-card">
+          <span class="metric-value" style="font-size:18px">${escHtml(ex.load)}</span>
+          <span class="metric-label">Carga</span>
+        </div>` : ''}
+      </div>
+
+      <!-- Descanso -->
+      <div class="rest-info">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+          fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Descanso: ${restSec}s
+      </div>
+
+      <!-- Notas técnicas -->
+      ${ex.technique_notes ? `
+        <div class="technique-box">
+          <div class="technique-label">📌 Dica do Trainer</div>
+          <div class="technique-text">${escHtml(ex.technique_notes)}</div>
+        </div>` : ''}
+
+      <!-- Timer -->
+      <div id="rest-timer-section">
+        <button id="start-rest-btn" onclick="startTimer(${restSec})">
+          ⏱ Iniciar descanso (${restSec}s)
+        </button>
+        <div id="timer-display">
+          <span class="timer-number" id="timer-number">00</span>
+          <div class="timer-label">segundos restantes</div>
+          <button class="timer-cancel" onclick="stopTimer()">cancelar</button>
+        </div>
+      </div>
+
+      <!-- Vídeo demonstrativo (abaixo do timer) -->
+      ${ytId ? `
+        <button class="video-btn" onclick="openVideo('${ytId}')">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2.5">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/>
+          </svg>
+          Ver vídeo demonstrativo
+        </button>` : ''}
+    `;
+  }
+
+  // ── Navegação por swipe ──
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; });
+  document.addEventListener('touchend', e => {
+    const diff = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 60) navigate(diff > 0 ? 1 : -1);
+  });
+
+  function navigate(dir) {
+    const newIdx = currentIdx + dir;
+    if (newIdx < 0 || newIdx >= exercises.length) return;
+    renderExercise(newIdx, dir);
+  }
+
+  // ── Timer de descanso ──
+  function startTimer(seconds) {
+    timerSeconds = seconds;
+    document.getElementById('start-rest-btn').style.display = 'none';
+    const display = document.getElementById('timer-display');
+    display.style.display = 'block';
+    updateTimerDisplay();
+
+    timerInterval = setInterval(() => {
+      timerSeconds--;
+      updateTimerDisplay();
+      if (timerSeconds <= 0) {
+        stopTimer();
+        playBeep();
+      }
+    }, 1000);
+  }
+
+  function stopTimer() {
+    clearInterval(timerInterval);
+    timerInterval = null;
+    const startBtn = document.getElementById('start-rest-btn');
+    const display  = document.getElementById('timer-display');
+    if (startBtn) startBtn.style.display = '';
+    if (display)  display.style.display = 'none';
+  }
+
+  function updateTimerDisplay() {
+    const el = document.getElementById('timer-number');
+    if (el) el.textContent = String(timerSeconds).padStart(2, '0');
+  }
+
+  function playBeep() {
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc  = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain); gain.connect(audioCtx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+      osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+    } catch (e) { /* sem som se o browser bloquear */ }
+  }
+
+  // ── Modal de vídeo ──
+  function openVideo(ytId) {
+    document.getElementById('video-frame').innerHTML =
+      `<iframe src="https://www.youtube.com/embed/${ytId}?autoplay=1"
+               allow="autoplay" allowfullscreen></iframe>`;
+    document.getElementById('video-modal').classList.add('open');
+  }
+
+  function closeVideo() {
+    document.getElementById('video-frame').innerHTML = '';
+    document.getElementById('video-modal').classList.remove('open');
+  }
+
+  // ── Conclusão ──
+  function finishWorkout() {
+    stopTimer();
+    document.getElementById('main-screen').style.display = 'none';
+    const completion = document.getElementById('completion-screen');
+    completion.style.display = 'flex';
+    document.getElementById('completion-msg').textContent =
+      `Parabéns! Você completou ${exercises.length} exercício${exercises.length !== 1 ? 's' : ''}.`;
+  }
+
+  function restartWorkout() {
+    document.getElementById('completion-screen').style.display = 'none';
+    document.getElementById('main-screen').style.display = 'block';
+    renderExercise(0);
+  }
+
+  // ── Erro ──
+  function showError(msg) {
+    document.getElementById('loading-screen').innerHTML = `
+      <div style="text-align:center;padding:40px 24px">
+        <div style="font-size:48px;margin-bottom:16px">😕</div>
+        <h2 style="font-family:'Plus Jakarta Sans',sans-serif;font-size:20px;
+                   font-weight:800;color:#0F172A;margin-bottom:8px">Ops!</h2>
+        <p style="font-size:14px;color:#64748B">${escHtml(msg)}</p>
+      </div>`;
+  }
+
+  // ── Helpers ──
+  function getYouTubeId(url) {
+    if (!url) return null;
+    // Suporta: watch?v=, /shorts/, youtu.be/
+    const m = url.match(/(?:youtube\.com\/(?:watch\?v=|shorts\/)|youtu\.be\/)([^&\s/?]+)/);
+    return m ? m[1] : null;
+  }
+
+  function escHtml(str = '') {
+    return String(str)
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+  }
+
+  // Fecha modal de vídeo com Esc
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeVideo(); });
+
+  // ── Init ──
+  loadWorkout();
+</script>
+</body>
+</html>
