@@ -3,8 +3,11 @@ Blueprint de configurações do trainer — /api/trainer
 Rotas para atualizar perfil, disponibilidade e preferências de agendamento.
 Todas as rotas exigem trainer autenticado.
 """
+from datetime import datetime, timezone, timedelta
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
+from sqlalchemy import func, or_
 
 from app.extensions import db
 from app.utils.decorators import trainer_required
@@ -215,3 +218,222 @@ def update_profile(**kwargs):
         data={"trainer": trainer.to_dict()},
         message="Perfil atualizado com sucesso.",
     )
+
+
+# ------------------------------------------------------------------ #
+#  Helpers internos do dashboard                                      #
+# ------------------------------------------------------------------ #
+
+def _subtract_months(dt: datetime, months: int) -> datetime:
+    """Subtrai N meses de um datetime e retorna com day=1, hora zerada."""
+    month = dt.month - months
+    year = dt.year
+    while month <= 0:
+        month += 12
+        year -= 1
+    return dt.replace(year=year, month=month, day=1,
+                      hour=0, minute=0, second=0, microsecond=0)
+
+
+# ------------------------------------------------------------------ #
+#  GET /api/trainer/dashboard                                         #
+# ------------------------------------------------------------------ #
+
+@trainer_bp.route("/dashboard", methods=["GET"])
+@jwt_required()
+@trainer_required
+def get_dashboard(**kwargs):
+    """
+    Retorna todos os dados do dashboard do trainer em um único request:
+    métricas, agendamentos de hoje, alertas, atividade recente, histórico MRR
+    e distribuição de objetivos.
+    """
+    from app.models import Student, Payment, Appointment, Workout, Message
+
+    trainer = kwargs["current_trainer"]
+    # SQLite armazena datetimes sem timezone; usamos naive UTC para comparações com o banco
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end   = now.replace(hour=23, minute=59, second=59, microsecond=999999)
+    first_of_month   = today_start.replace(day=1)
+    prev_month_start = _subtract_months(first_of_month, 1)
+    seven_days_ago   = now - timedelta(days=7)
+    thirty_days_ago  = now - timedelta(days=30)
+
+    # --- Alunos ativos ---
+    students_active_count = Student.query.filter_by(
+        trainer_id=trainer.id, status="active"
+    ).count()
+
+    # Novos alunos este mês (delta para exibir "▲ N este mês")
+    students_delta = Student.query.filter(
+        Student.trainer_id == trainer.id,
+        Student.created_at >= first_of_month,
+    ).count()
+
+    # --- MRR atual e anterior ---
+    mrr_current = float(
+        db.session.query(func.sum(Payment.amount)).filter(
+            Payment.trainer_id == trainer.id,
+            Payment.status == "paid",
+            Payment.paid_at >= first_of_month,
+        ).scalar() or 0
+    )
+    mrr_prev = float(
+        db.session.query(func.sum(Payment.amount)).filter(
+            Payment.trainer_id == trainer.id,
+            Payment.status == "paid",
+            Payment.paid_at >= prev_month_start,
+            Payment.paid_at < first_of_month,
+        ).scalar() or 0
+    )
+    mrr_delta = round(mrr_current - mrr_prev, 2)
+
+    # --- Inadimplentes ---
+    overdue_count = Student.query.filter_by(
+        trainer_id=trainer.id, status="pending_payment"
+    ).count()
+
+    # --- Agendamentos de hoje (max 5, ordenados por horário) ---
+    today_appts = Appointment.query.filter(
+        Appointment.trainer_id == trainer.id,
+        Appointment.starts_at >= today_start,
+        Appointment.starts_at <= today_end,
+        Appointment.status.in_(["scheduled", "confirmed"]),
+    ).order_by(Appointment.starts_at.asc()).limit(5).all()
+
+    # Próxima sessão ainda não iniciada
+    next_appt = next(
+        (a for a in today_appts if a.starts_at > now),
+        today_appts[0] if today_appts else None,
+    )
+
+    # --- Alunos em risco: sem acesso 7+ dias E pagamento pendente ---
+    at_risk = Student.query.filter(
+        Student.trainer_id == trainer.id,
+        Student.status == "pending_payment",
+        or_(
+            Student.last_access_at < seven_days_ago,
+            Student.last_access_at.is_(None),
+        ),
+    ).limit(5).all()
+
+    # --- Alunos sem ficha ativa ou ficha não atualizada há 30+ dias ---
+    ok_workout_ids = db.session.query(Workout.student_id).filter(
+        Workout.trainer_id == trainer.id,
+        Workout.is_active == True,          # noqa: E712
+        Workout.updated_at >= thirty_days_ago,
+    ).distinct()
+
+    students_without_workout = Student.query.filter(
+        Student.trainer_id == trainer.id,
+        Student.status == "active",
+        ~Student.id.in_(ok_workout_ids),
+    ).limit(5).all()
+
+    # --- Alunos com pagamento pendente/vencido ---
+    overdue_students = Student.query.filter_by(
+        trainer_id=trainer.id, status="pending_payment"
+    ).limit(5).all()
+
+    # --- Atividade recente: mix de pagamentos, novos alunos e mensagens ---
+    recent_payments = Payment.query.filter(
+        Payment.trainer_id == trainer.id,
+        Payment.status == "paid",
+        Payment.paid_at.isnot(None),
+    ).order_by(Payment.paid_at.desc()).limit(10).all()
+
+    recent_new_students = Student.query.filter(
+        Student.trainer_id == trainer.id,
+    ).order_by(Student.created_at.desc()).limit(10).all()
+
+    # Mensagens recebidas de alunos (sender_role='student')
+    recent_msgs = db.session.query(Message, Student).join(
+        Student, Message.student_id == Student.id
+    ).filter(
+        Message.trainer_id == trainer.id,
+        Message.sender_role == "student",
+    ).order_by(Message.created_at.desc()).limit(10).all()
+
+    activity = []
+    for p in recent_payments:
+        sname = p.student.name if p.student else "Aluno"
+        activity.append({
+            "type": "payment",
+            "description": f"Pagamento de R${float(p.amount):.2f}",
+            "created_at": p.paid_at.isoformat(),
+            "student_id": p.student_id,
+            "student_name": sname,
+            "student_avatar": p.student.avatar_url if p.student else None,
+        })
+    for s in recent_new_students:
+        activity.append({
+            "type": "new_student",
+            "description": "Novo aluno cadastrado",
+            "created_at": s.created_at.isoformat(),
+            "student_id": s.id,
+            "student_name": s.name,
+            "student_avatar": s.avatar_url,
+        })
+    for msg, student in recent_msgs:
+        activity.append({
+            "type": "message",
+            "description": "Nova mensagem recebida",
+            "created_at": msg.created_at.isoformat(),
+            "student_id": msg.student_id,
+            "student_name": student.name,
+            "student_avatar": student.avatar_url,
+        })
+
+    activity.sort(key=lambda x: x["created_at"], reverse=True)
+    recent_activity = activity[:10]
+
+    # --- MRR histórico: últimos 6 meses ---
+    mrr_history = []
+    for i in range(5, -1, -1):
+        m_start = _subtract_months(first_of_month, i)
+        m_end   = _subtract_months(first_of_month, i - 1) if i > 0 else now
+        m_sum = float(
+            db.session.query(func.sum(Payment.amount)).filter(
+                Payment.trainer_id == trainer.id,
+                Payment.status == "paid",
+                Payment.paid_at >= m_start,
+                Payment.paid_at < m_end,
+            ).scalar() or 0
+        )
+        mrr_history.append({
+            "month": m_start.strftime("%b/%y"),
+            "amount": m_sum,
+        })
+
+    # --- Distribuição de objetivos dos alunos ativos ---
+    obj_rows = db.session.query(
+        Student.objective,
+        func.count(Student.id).label("count"),
+    ).filter(
+        Student.trainer_id == trainer.id,
+        Student.status == "active",
+        Student.objective.isnot(None),
+    ).group_by(Student.objective).all()
+
+    objectives_distribution = [
+        {"objective": row.objective, "count": row.count}
+        for row in obj_rows
+    ]
+
+    return _success(data={
+        "students_active_count": students_active_count,
+        "students_delta":        students_delta,
+        "mrr_current":           mrr_current,
+        "mrr_delta":             mrr_delta,
+        "overdue_count":         overdue_count,
+        "today_count":           len(today_appts),
+        "today_appointments":    [a.to_dict() for a in today_appts],
+        "next_appointment":      next_appt.to_dict() if next_appt else None,
+        "at_risk_students":      [s.to_dict() for s in at_risk],
+        "students_without_workout": [s.to_dict() for s in students_without_workout],
+        "overdue_students":      [s.to_dict() for s in overdue_students],
+        "recent_activity":       recent_activity,
+        "mrr_history":           mrr_history,
+        "objectives_distribution": objectives_distribution,
+    })

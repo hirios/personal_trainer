@@ -70,6 +70,7 @@ def _register_blueprints(app: Flask) -> None:
     from app.routes.appointments import appointments_bp
     from app.routes.trainer import trainer_bp
     from app.routes.payments import payments_bp
+    from app.routes.messages import messages_bp
     from app.routes.frontend import frontend_bp
 
     app.register_blueprint(auth_bp)
@@ -81,6 +82,7 @@ def _register_blueprints(app: Flask) -> None:
     app.register_blueprint(appointments_bp)
     app.register_blueprint(trainer_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(messages_bp)
     app.register_blueprint(frontend_bp)
 
 

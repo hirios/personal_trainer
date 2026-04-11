@@ -3,22 +3,17 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Alunos — FitFlow Pro</title>
+  <title>Dashboard — FitFlow Pro</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
   <style>
     body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
-    h1,h2,h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
-
-    /* Filtro ativo */
-    .filter-btn { transition: all 0.15s; }
-    .filter-btn.active {
-      background: #22C55E; color: #fff; border-color: #22C55E;
-    }
+    h1,h2,h3,h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
 
     /* Skeleton loading */
     .skeleton {
@@ -29,56 +24,79 @@
     }
     @keyframes shimmer { to { background-position: -200% 0; } }
 
-    /* Card do aluno */
-    .student-card {
+    /* Card base */
+    .dash-card {
       background: #fff;
-      border: 1px solid #F1F5F9;
+      border: 1px solid #E2E8F0;
       border-radius: 20px;
-      padding: 20px;
-      cursor: pointer;
-      transition: box-shadow 0.2s, transform 0.15s, border-color 0.2s;
       box-shadow: 0 1px 3px rgba(0,0,0,0.04);
     }
-    .student-card:hover {
-      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-      transform: translateY(-1px);
-      border-color: #E2E8F0;
+
+    /* Valor numérico grande */
+    .metric-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 2rem;
+      font-weight: 600;
+      color: #0F172A;
+      line-height: 1;
     }
 
-    /* Avatar com iniciais */
-    .avatar-ring {
-      width: 52px; height: 52px; border-radius: 50%;
-      flex-shrink: 0; position: relative;
+    /* Ícone de métrica */
+    .metric-icon {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
     }
-    .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-    .avatar-initials {
-      width: 100%; height: 100%; border-radius: 50%;
+
+    /* Delta positivo/negativo */
+    .delta-positive { color: #15803D; }
+    .delta-negative { color: #DC2626; }
+    .delta-neutral  { color: #64748B; }
+
+    /* Lista de sessões */
+    .session-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid #F1F5F9;
+    }
+    .session-row:last-child { border-bottom: none; }
+
+    /* Avatar pequeno */
+    .avatar-sm {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
       font-family: 'Plus Jakarta Sans', sans-serif;
-      font-size: 18px; font-weight: 700; color: #fff;
+      font-size: 13px; font-weight: 700; color: #fff;
+      object-fit: cover;
     }
 
-    /* Status dot */
-    .status-dot {
-      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    /* Chip de status */
+    .status-chip {
+      display: inline-flex; align-items: center;
+      padding: 2px 8px; border-radius: 999px;
+      font-size: 11px; font-weight: 600;
     }
 
-    /* FAB */
-    .fab {
-      position: fixed; bottom: 88px; right: 20px;
-      width: 56px; height: 56px; border-radius: 50%;
-      background: #22C55E; color: #fff;
-      box-shadow: 0 4px 14px rgba(34,197,94,0.45);
+    /* Linha de alerta */
+    .alert-row {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px solid #F8FAFC;
+    }
+    .alert-row:last-child { border-bottom: none; }
+
+    /* Evento de atividade */
+    .activity-dot {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      cursor: pointer; border: none;
-      transition: background 0.2s, transform 0.15s;
-      z-index: 50;
     }
-    .fab:hover { background: #15803D; transform: scale(1.05); }
-    @media (min-width: 1024px) { .fab { display: none; } }
+
+    /* Chart wrapper */
+    .chart-wrap {
+      position: relative; height: 200px;
+    }
   </style>
 
-  <!-- Utilitários no <head>: o FOUC-shield do layout.js executa antes do primeiro paint -->
   <script>window.API_BASE_URL = window.location.origin;</script>
   <script src="/frontend/js/api.js"></script>
   <script src="/frontend/js/auth.js"></script>
@@ -91,329 +109,119 @@
   <div id="main-content" class="min-h-screen">
     <!-- Header, sidebar e bottom nav injetados pelo layout.js -->
 
-    <!-- Conteúdo da página -->
-    <div class="px-4 lg:px-6 pb-6">
+    <div class="px-4 lg:px-6 pb-8" id="dash-body">
 
-      <!-- Busca + Ações (desktop) -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-5">
-        <!-- Busca -->
-        <div class="relative flex-1">
-          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-            <i data-lucide="search" class="w-4 h-4"></i>
-          </span>
-          <input
-            type="text"
-            id="search-input"
-            placeholder="Buscar por nome, e-mail ou telefone..."
-            class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm
-                   focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100
-                   bg-white"
-          />
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- MÉTRICAS SUPERIORES                                 -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="metrics-grid">
+        <!-- Skeleton inicial -->
+        <div class="dash-card p-5"><div class="skeleton h-10 w-20 mb-3"></div><div class="skeleton h-4 w-24"></div></div>
+        <div class="dash-card p-5"><div class="skeleton h-10 w-20 mb-3"></div><div class="skeleton h-4 w-24"></div></div>
+        <div class="dash-card p-5"><div class="skeleton h-10 w-20 mb-3"></div><div class="skeleton h-4 w-24"></div></div>
+        <div class="dash-card p-5"><div class="skeleton h-10 w-20 mb-3"></div><div class="skeleton h-4 w-24"></div></div>
+      </div>
+
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- HOJE + ATENÇÃO NECESSÁRIA                           -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        <!-- Sessões de Hoje -->
+        <div class="dash-card p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-bold text-gray-900">Sessões de Hoje</h2>
+            <a href="/frontend/trainer/schedule/index.html"
+               class="text-xs text-green-600 font-semibold hover:text-green-700">
+              Ver agenda →
+            </a>
+          </div>
+          <div id="today-list">
+            <div class="skeleton h-10 w-full mb-2 rounded-xl"></div>
+            <div class="skeleton h-10 w-full mb-2 rounded-xl"></div>
+            <div class="skeleton h-10 w-full rounded-xl"></div>
+          </div>
         </div>
 
-        <!-- Ordenação -->
-        <select id="sort-select"
-          class="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
-                 focus:outline-none focus:border-green-400 cursor-pointer">
-          <option value="name">Nome A–Z</option>
-          <option value="created_at">Mais recentes</option>
-          <option value="last_access">Último acesso</option>
-        </select>
-
-        <!-- Botão desktop -->
-        <a href="/frontend/trainer/students/new.html"
-           class="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-green-500 hover:bg-green-600
-                  text-white text-sm font-semibold rounded-xl transition-colors">
-          <i data-lucide="user-plus" class="w-4 h-4"></i>
-          Novo aluno
-        </a>
+        <!-- Atenção Necessária -->
+        <div class="dash-card p-5">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="w-6 h-6 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
+              <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-orange-500"></i>
+            </div>
+            <h2 class="text-base font-bold text-gray-900">Atenção Necessária</h2>
+          </div>
+          <div id="alerts-section">
+            <div class="skeleton h-10 w-full mb-2 rounded-xl"></div>
+            <div class="skeleton h-10 w-full mb-2 rounded-xl"></div>
+            <div class="skeleton h-10 w-full rounded-xl"></div>
+          </div>
+        </div>
       </div>
 
-      <!-- Filtros -->
-      <div class="flex gap-2 flex-wrap mb-6" id="filter-bar">
-        <button class="filter-btn active px-4 py-1.5 text-sm font-medium border border-gray-200
-                       rounded-full bg-white text-gray-600" data-filter="all">
-          Todos
-        </button>
-        <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200
-                       rounded-full bg-white text-gray-600" data-filter="active">
-          Ativos
-        </button>
-        <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200
-                       rounded-full bg-white text-gray-600" data-filter="inactive">
-          Inativos
-        </button>
-        <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200
-                       rounded-full bg-white text-gray-600" data-filter="overdue">
-          Inadimplentes
-        </button>
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- GRÁFICOS                                            -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+        <!-- MRR — Linha -->
+        <div class="dash-card p-5">
+          <h2 class="text-base font-bold text-gray-900 mb-1">Receita Mensal</h2>
+          <p class="text-xs text-gray-400 mb-4">Últimos 6 meses</p>
+          <div class="chart-wrap">
+            <canvas id="chart-mrr"></canvas>
+          </div>
+        </div>
+
+        <!-- Objetivos — Donut -->
+        <div class="dash-card p-5">
+          <h2 class="text-base font-bold text-gray-900 mb-1">Objetivos dos Alunos</h2>
+          <p class="text-xs text-gray-400 mb-4">Distribuição dos alunos ativos</p>
+          <div class="chart-wrap">
+            <canvas id="chart-objectives"></canvas>
+          </div>
+        </div>
       </div>
 
-      <!-- Contador -->
-      <p id="result-count" class="text-sm text-gray-400 mb-4"></p>
-
-      <!-- Grid de cards -->
-      <div id="students-grid"
-           class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-        <!-- Preenchido via JS -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <!-- ATIVIDADE RECENTE                                   -->
+      <!-- ═══════════════════════════════════════════════════ -->
+      <div class="dash-card p-5">
+        <h2 class="text-base font-bold text-gray-900 mb-4">Atividade Recente</h2>
+        <div id="activity-list">
+          <div class="skeleton h-10 w-full mb-2 rounded-xl"></div>
+          <div class="skeleton h-10 w-full mb-2 rounded-xl"></div>
+          <div class="skeleton h-10 w-full rounded-xl"></div>
+        </div>
       </div>
 
-      <!-- Paginação -->
-      <div id="pagination" class="flex justify-center gap-2 mt-8 hidden"></div>
-    </div>
+    </div><!-- /dash-body -->
   </div>
-
-  <!-- FAB mobile -->
-  <button class="fab" onclick="window.location.href='/frontend/trainer/students/new.html'"
-          aria-label="Cadastrar novo aluno">
-    <i data-lucide="plus" class="w-6 h-6"></i>
-  </button>
 
   <script>
     Auth.requireAuth('trainer');
 
-    // --- Estado da página ---
-    let currentFilter = 'all';
-    let currentSort   = 'name';
-    let currentPage   = 1;
-    let searchTimeout = null;
+    /* ─── Helpers de formatação ─────────────────────────── */
 
-    const OBJECTIVE_CONFIG = {
-      emagrecimento: { label: 'Emagrecimento', bg: '#FFF7ED', color: '#C2410C' },
-      hipertrofia:   { label: 'Hipertrofia',   bg: '#EFF6FF', color: '#1D4ED8' },
-      condicionamento:{ label: 'Condicionamento', bg: '#F5F3FF', color: '#6D28D9' },
-      saude:         { label: 'Saúde',          bg: '#F0FDF4', color: '#15803D' },
-      reabilitacao:  { label: 'Reabilitação',   bg: '#FFFBEB', color: '#92400E' },
-    };
-
-    const STATUS_CONFIG = {
-      active:          { label: 'Ativo',         color: '#22C55E', dot: '#22C55E' },
-      pending_payment: { label: 'Inadimplente',  color: '#F97316', dot: '#F97316' },
-      inactive:        { label: 'Inativo',       color: '#94A3B8', dot: '#94A3B8' },
-    };
-
-    // --- Avatar ---
-    function getInitials(name = '') {
-      return name.trim().split(/\s+/).slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    function fmtCurrency(amount) {
+      return new Intl.NumberFormat('pt-BR', {
+        style: 'currency', currency: 'BRL', maximumFractionDigits: 0,
+      }).format(amount);
     }
 
-    const AVATAR_COLORS = [
-      '#22C55E','#3B82F6','#8B5CF6','#F97316','#EC4899','#14B8A6','#F59E0B',
-    ];
-    function getAvatarColor(name = '') {
-      let hash = 0;
-      for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xFFFFFF;
-      return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+    function fmtTime(iso) {
+      return new Date(iso).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
-    // --- Cálculo de "último acesso" ---
-    function formatLastAccess(isoDate) {
-      if (!isoDate) return 'Nunca acessou';
-      const diff = Math.floor((Date.now() - new Date(isoDate)) / 86400000);
-      if (diff === 0) return 'Hoje';
-      if (diff === 1) return 'Ontem';
-      if (diff < 7)  return `${diff} dias atrás`;
-      if (diff < 30) return `${Math.floor(diff/7)} sem. atrás`;
-      return `${Math.floor(diff/30)} meses atrás`;
-    }
-
-    // --- Renderização de cards ---
-    function renderCard(student) {
-      const obj  = OBJECTIVE_CONFIG[student.objective] || { label: student.objective || '—', bg: '#F8FAFC', color: '#64748B' };
-      const stat = STATUS_CONFIG[student.status]       || STATUS_CONFIG.inactive;
-      const initials   = getInitials(student.name);
-      const avatarColor = getAvatarColor(student.name);
-      const lastAccess  = formatLastAccess(student.last_access_at);
-
-      const avatarHTML = student.avatar_url
-        ? `<img src="${student.avatar_url}" alt="${student.name}" class="avatar-img" />`
-        : `<div class="avatar-initials" style="background:${avatarColor}">${initials}</div>`;
-
-      return `
-        <div class="student-card" onclick="goToDetail('${student.id}')" role="button" tabindex="0"
-             onkeydown="if(event.key==='Enter') goToDetail('${student.id}')">
-          <div class="flex items-start gap-3 mb-3">
-            <div class="avatar-ring">${avatarHTML}</div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between gap-2">
-                <h3 class="font-semibold text-gray-900 text-base truncate">${escHtml(student.name)}</h3>
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <div class="status-dot" style="background:${stat.dot}"></div>
-                  <span class="text-xs font-medium" style="color:${stat.color}">${stat.label}</span>
-                </div>
-              </div>
-              <p class="text-xs text-gray-400 truncate mt-0.5">${escHtml(student.email)}</p>
-            </div>
-          </div>
-
-          <!-- Objetivo -->
-          ${student.objective ? `
-          <div class="mb-3">
-            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
-                  style="background:${obj.bg};color:${obj.color}">
-              ${obj.label}
-            </span>
-          </div>` : ''}
-
-          <!-- Último acesso -->
-          <div class="flex items-center gap-1.5 text-xs text-gray-400 mb-4">
-            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
-            <span>${lastAccess}</span>
-          </div>
-
-          <!-- Ações -->
-          <div class="flex gap-2">
-            <button onclick="event.stopPropagation(); openWhatsApp('${escHtml(student.phone || '')}')"
-                    class="flex-1 flex items-center justify-center gap-1.5 py-2 border border-gray-200
-                           rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-                    title="Enviar mensagem">
-              <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
-              Mensagem
-            </button>
-            <button onclick="event.stopPropagation(); goToDetail('${student.id}')"
-                    class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50
-                           rounded-xl text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
-              <i data-lucide="user" class="w-3.5 h-3.5"></i>
-              Ver perfil
-            </button>
-          </div>
-        </div>
-      `;
-    }
-
-    // --- Skeleton loading ---
-    function renderSkeletons(count = 6) {
-      return Array.from({ length: count }, () => `
-        <div class="student-card pointer-events-none">
-          <div class="flex items-start gap-3 mb-3">
-            <div class="skeleton w-13 h-13 rounded-full" style="width:52px;height:52px;border-radius:50%"></div>
-            <div class="flex-1 space-y-2 pt-1">
-              <div class="skeleton h-4 w-3/4"></div>
-              <div class="skeleton h-3 w-1/2"></div>
-            </div>
-          </div>
-          <div class="skeleton h-6 w-28 rounded-full mb-3"></div>
-          <div class="skeleton h-3 w-32 mb-4"></div>
-          <div class="flex gap-2">
-            <div class="skeleton flex-1 h-8 rounded-xl"></div>
-            <div class="skeleton flex-1 h-8 rounded-xl"></div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    // --- Estado vazio ---
-    function renderEmpty(hasSearch) {
-      if (hasSearch) {
-        return `
-          <div class="col-span-full flex flex-col items-center justify-center py-16 text-center">
-            <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
-              <i data-lucide="search-x" class="w-7 h-7 text-gray-400"></i>
-            </div>
-            <h3 class="font-semibold text-gray-700 mb-1">Nenhum aluno encontrado</h3>
-            <p class="text-sm text-gray-400">Tente outro termo de busca ou mude os filtros.</p>
-          </div>`;
-      }
-      return `
-        <div class="col-span-full flex flex-col items-center justify-center py-16 text-center">
-          <div class="w-20 h-20 bg-green-50 rounded-3xl flex items-center justify-center mb-5">
-            <i data-lucide="users" class="w-9 h-9 text-green-400"></i>
-          </div>
-          <h3 class="font-bold text-gray-800 text-lg mb-2">Nenhum aluno ainda</h3>
-          <p class="text-sm text-gray-400 mb-6 max-w-xs">
-            Cadastre seu primeiro aluno e comece a gerenciar treinos, avaliações e pagamentos.
-          </p>
-          <a href="/frontend/trainer/students/new.html"
-             class="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600
-                    text-white font-semibold rounded-xl transition-colors text-sm">
-            <i data-lucide="user-plus" class="w-4 h-4"></i>
-            Cadastrar primeiro aluno
-          </a>
-        </div>`;
-    }
-
-    // --- Carregar alunos ---
-    async function loadStudents(page = 1) {
-      const grid = document.getElementById('students-grid');
-      grid.innerHTML = renderSkeletons();
-
-      const searchVal = document.getElementById('search-input').value.trim();
-
-      const params = {
-        page,
-        per_page: 12,
-        sort: currentSort,
-      };
-
-      if (searchVal)              params.search   = searchVal;
-      if (currentFilter === 'active')   params.status   = 'active';
-      if (currentFilter === 'inactive') params.status   = 'inactive';
-      if (currentFilter === 'overdue')  params.overdue  = 'true';
-
-      const result = await Api.get('/api/students/', params);
-
-      if (!result.success) {
-        Toast.error(result.message || 'Erro ao carregar alunos.');
-        grid.innerHTML = '';
-        return;
-      }
-
-      const { students, pagination } = result.data;
-      currentPage = pagination.page;
-
-      // Contador
-      const count = document.getElementById('result-count');
-      count.textContent = pagination.total === 0 ? '' :
-        `${pagination.total} aluno${pagination.total !== 1 ? 's' : ''}`;
-
-      if (students.length === 0) {
-        grid.innerHTML = renderEmpty(!!searchVal || currentFilter !== 'all');
-      } else {
-        grid.innerHTML = students.map(renderCard).join('');
-      }
-
-      lucide.createIcons();
-      renderPagination(pagination);
-    }
-
-    // --- Paginação ---
-    function renderPagination(p) {
-      const el = document.getElementById('pagination');
-      if (p.pages <= 1) { el.classList.add('hidden'); return; }
-      el.classList.remove('hidden');
-
-      let html = '';
-      const btn = (label, pg, disabled, active) => `
-        <button onclick="loadStudents(${pg})"
-          class="w-9 h-9 rounded-xl text-sm font-semibold border transition-colors
-          ${active ? 'bg-green-500 text-white border-green-500' :
-            disabled ? 'text-gray-300 border-gray-100 cursor-default' :
-            'text-gray-600 border-gray-200 hover:bg-gray-50'}"
-          ${disabled ? 'disabled' : ''}>
-          ${label}
-        </button>`;
-
-      html += btn('‹', p.page - 1, !p.has_prev, false);
-      for (let i = 1; i <= p.pages; i++) {
-        if (i === 1 || i === p.pages || Math.abs(i - p.page) <= 1) {
-          html += btn(i, i, false, i === p.page);
-        } else if (Math.abs(i - p.page) === 2) {
-          html += `<span class="w-9 h-9 flex items-center justify-center text-gray-400">…</span>`;
-        }
-      }
-      html += btn('›', p.page + 1, !p.has_next, false);
-      el.innerHTML = html;
-    }
-
-    // --- Navegação ---
-    function goToDetail(id) {
-      window.location.href = `/frontend/trainer/students/detail.html?id=${id}`;
-    }
-
-    function openWhatsApp(phone) {
-      if (!phone) { Toast.warning('Aluno sem telefone cadastrado.'); return; }
-      const num = phone.replace(/\D/g, '');
-      window.open(`https://wa.me/55${num}`, '_blank');
+    function relativeTime(iso) {
+      const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
+      if (diff < 60)   return 'agora mesmo';
+      if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`;
+      const days = Math.floor(diff / 86400);
+      if (days === 1) return 'ontem';
+      if (days < 7)  return `${days} dias atrás`;
+      return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     }
 
     function escHtml(str = '') {
@@ -422,34 +230,423 @@
         .replace(/"/g,'&quot;');
     }
 
-    // --- Filtros ---
-    document.getElementById('filter-bar').addEventListener('click', (e) => {
-      const btn = e.target.closest('[data-filter]');
-      if (!btn) return;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      loadStudents(1);
-    });
+    /* Avatar com iniciais */
+    const AVATAR_COLORS = ['#22C55E','#3B82F6','#8B5CF6','#F97316','#EC4899','#14B8A6','#F59E0B'];
+    function getAvatarColor(name = '') {
+      let hash = 0;
+      for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xFFFFFF;
+      return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+    }
+    function getInitials(name = '') {
+      return name.trim().split(/\s+/).slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    }
+    function avatarHtml(name, url, size = 'sm') {
+      const cls = size === 'sm' ? 'avatar-sm' : 'avatar-sm w-10 h-10 text-base';
+      if (url) return `<img src="${escHtml(url)}" class="${cls}" alt="${escHtml(name)}" />`;
+      return `<div class="${cls}" style="background:${getAvatarColor(name)}">${getInitials(name)}</div>`;
+    }
 
-    // --- Busca com debounce ---
-    document.getElementById('search-input').addEventListener('input', () => {
-      clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => loadStudents(1), 300);
-    });
+    /* Status de agendamento */
+    const APPT_STATUS = {
+      scheduled: { label: 'Agendado', bg: '#EFF6FF', color: '#1D4ED8' },
+      confirmed:  { label: 'Confirmado', bg: '#F0FDF4', color: '#15803D' },
+    };
 
-    // --- Ordenação ---
-    document.getElementById('sort-select').addEventListener('change', (e) => {
-      currentSort = e.target.value;
-      loadStudents(1);
-    });
+    /* Objetivos */
+    const OBJ_LABELS = {
+      emagrecimento: 'Emagrecimento',
+      hipertrofia:   'Hipertrofia',
+      condicionamento: 'Condicionamento',
+      saude:         'Saúde',
+      reabilitacao:  'Reabilitação',
+    };
+    const OBJ_COLORS = {
+      emagrecimento: '#F97316',
+      hipertrofia:   '#3B82F6',
+      condicionamento: '#8B5CF6',
+      saude:         '#22C55E',
+      reabilitacao:  '#F59E0B',
+    };
 
-    // --- Init ---
+    /* ─── Renderizadores de seção ───────────────────────── */
+
+    function renderMetrics(d) {
+      // Delta de alunos
+      const deltaStudents = d.students_delta > 0
+        ? `<span class="delta-positive text-xs font-semibold">▲ ${d.students_delta} este mês</span>`
+        : `<span class="delta-neutral text-xs">Nenhum novo</span>`;
+
+      // Delta de MRR
+      const deltaMrr = d.mrr_delta > 0
+        ? `<span class="delta-positive text-xs font-semibold">▲ ${fmtCurrency(d.mrr_delta)} vs anterior</span>`
+        : d.mrr_delta < 0
+        ? `<span class="delta-negative text-xs font-semibold">▼ ${fmtCurrency(Math.abs(d.mrr_delta))} vs anterior</span>`
+        : `<span class="delta-neutral text-xs">Igual ao anterior</span>`;
+
+      // Inadimplentes badge
+      const overdueDisplay = d.overdue_count > 0
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-red-100 text-red-700">
+             <i data-lucide="alert-circle" class="w-3 h-3"></i> ${d.overdue_count}
+           </span>`
+        : `<span class="text-xs text-green-600 font-semibold">Nenhum 👍</span>`;
+
+      // Próxima sessão
+      const nextLabel = d.next_appointment
+        ? `<span class="text-xs text-gray-500">Próxima: <strong>${fmtTime(d.next_appointment.starts_at)}</strong></span>`
+        : `<span class="text-xs text-gray-400">Nenhuma restante</span>`;
+
+      document.getElementById('metrics-grid').innerHTML = `
+        <!-- Alunos Ativos -->
+        <div class="dash-card p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p class="text-xs text-gray-500 font-medium mb-1.5">Alunos Ativos</p>
+              <div class="metric-value">${d.students_active_count}</div>
+            </div>
+            <div class="metric-icon bg-green-50">
+              <i data-lucide="users" class="w-5 h-5 text-green-600"></i>
+            </div>
+          </div>
+          ${deltaStudents}
+        </div>
+
+        <!-- MRR -->
+        <div class="dash-card p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p class="text-xs text-gray-500 font-medium mb-1.5">Receita do Mês</p>
+              <div class="metric-value" style="font-size:1.5rem">${fmtCurrency(d.mrr_current)}</div>
+            </div>
+            <div class="metric-icon bg-blue-50">
+              <i data-lucide="trending-up" class="w-5 h-5 text-blue-600"></i>
+            </div>
+          </div>
+          ${deltaMrr}
+        </div>
+
+        <!-- Inadimplentes -->
+        <div class="dash-card p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p class="text-xs text-gray-500 font-medium mb-1.5">Inadimplentes</p>
+              <div class="metric-value" style="color:${d.overdue_count > 0 ? '#DC2626' : '#0F172A'}">${d.overdue_count}</div>
+            </div>
+            <div class="metric-icon" style="background:${d.overdue_count > 0 ? '#FEF2F2' : '#F0FDF4'}">
+              <i data-lucide="credit-card" class="w-5 h-5" style="color:${d.overdue_count > 0 ? '#DC2626' : '#22C55E'}"></i>
+            </div>
+          </div>
+          ${overdueDisplay}
+        </div>
+
+        <!-- Sessões Hoje -->
+        <div class="dash-card p-5">
+          <div class="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <p class="text-xs text-gray-500 font-medium mb-1.5">Sessões Hoje</p>
+              <div class="metric-value">${d.today_count}</div>
+            </div>
+            <div class="metric-icon bg-purple-50">
+              <i data-lucide="calendar-check" class="w-5 h-5 text-purple-600"></i>
+            </div>
+          </div>
+          ${nextLabel}
+        </div>
+      `;
+      lucide.createIcons();
+    }
+
+    function renderToday(appts) {
+      const el = document.getElementById('today-list');
+      if (!appts.length) {
+        el.innerHTML = `
+          <div class="flex flex-col items-center py-6 text-center">
+            <div class="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mb-3">
+              <i data-lucide="calendar-x" class="w-5 h-5 text-gray-300"></i>
+            </div>
+            <p class="text-sm text-gray-400">Nenhuma sessão hoje</p>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
+
+      el.innerHTML = appts.map(a => {
+        const chip = APPT_STATUS[a.status] || { label: a.status, bg: '#F1F5F9', color: '#64748B' };
+        const student = a.student || {};
+        return `
+          <div class="session-row">
+            <div class="text-center flex-shrink-0" style="min-width:42px">
+              <p class="text-sm font-bold text-gray-900" style="font-family:'JetBrains Mono',monospace">
+                ${fmtTime(a.starts_at)}
+              </p>
+            </div>
+            ${avatarHtml(student.name || '?', student.avatar_url)}
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900 truncate">${escHtml(student.name || 'Aluno')}</p>
+              ${a.location ? `<p class="text-xs text-gray-400 truncate">${escHtml(a.location)}</p>` : ''}
+            </div>
+            <span class="status-chip flex-shrink-0"
+                  style="background:${chip.bg};color:${chip.color}">
+              ${chip.label}
+            </span>
+          </div>`;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    function renderAlerts(d) {
+      const el = document.getElementById('alerts-section');
+      const { at_risk_students: atRisk, students_without_workout: noWorkout, overdue_students: overdue } = d;
+
+      let html = '';
+
+      // Categoria 1: sem acesso 7+ dias
+      if (atRisk.length) {
+        html += `
+          <div class="mb-4">
+            <p class="text-xs font-semibold text-orange-600 uppercase tracking-wide mb-2">
+              Sem acesso há 7+ dias
+            </p>
+            ${atRisk.map(s => `
+              <div class="alert-row">
+                ${avatarHtml(s.name, s.avatar_url)}
+                <p class="text-sm font-medium text-gray-800 flex-1 truncate">${escHtml(s.name)}</p>
+                <a href="/frontend/trainer/students/detail.html?id=${s.id}&tab=messages"
+                   class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex-shrink-0 flex items-center gap-1">
+                  <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+                  Mensagem
+                </a>
+              </div>`).join('')}
+          </div>`;
+      }
+
+      // Categoria 2: sem ficha ativa
+      if (noWorkout.length) {
+        html += `
+          <div class="mb-4">
+            <p class="text-xs font-semibold text-purple-600 uppercase tracking-wide mb-2">
+              Sem ficha ativa
+            </p>
+            ${noWorkout.map(s => `
+              <div class="alert-row">
+                ${avatarHtml(s.name, s.avatar_url)}
+                <p class="text-sm font-medium text-gray-800 flex-1 truncate">${escHtml(s.name)}</p>
+                <a href="/frontend/trainer/students/detail.html?id=${s.id}&tab=workouts"
+                   class="text-xs font-semibold text-purple-600 hover:text-purple-700 flex-shrink-0 flex items-center gap-1">
+                  <i data-lucide="dumbbell" class="w-3.5 h-3.5"></i>
+                  Criar treino
+                </a>
+              </div>`).join('')}
+          </div>`;
+      }
+
+      // Categoria 3: pagamento vencido
+      if (overdue.length) {
+        html += `
+          <div>
+            <p class="text-xs font-semibold text-red-600 uppercase tracking-wide mb-2">
+              Pagamento vencido
+            </p>
+            ${overdue.map(s => `
+              <div class="alert-row">
+                ${avatarHtml(s.name, s.avatar_url)}
+                <p class="text-sm font-medium text-gray-800 flex-1 truncate">${escHtml(s.name)}</p>
+                <a href="/frontend/trainer/payments/index.html"
+                   class="text-xs font-semibold text-red-600 hover:text-red-700 flex-shrink-0 flex items-center gap-1">
+                  <i data-lucide="credit-card" class="w-3.5 h-3.5"></i>
+                  Ver cobrança
+                </a>
+              </div>`).join('')}
+          </div>`;
+      }
+
+      if (!html) {
+        html = `
+          <div class="flex flex-col items-center py-6 text-center">
+            <div class="w-12 h-12 bg-green-50 rounded-2xl flex items-center justify-center mb-3">
+              <i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>
+            </div>
+            <p class="text-sm font-semibold text-green-700">Tudo em ordem!</p>
+            <p class="text-xs text-gray-400 mt-1">Nenhuma atenção necessária</p>
+          </div>`;
+      }
+
+      el.innerHTML = html;
+      lucide.createIcons();
+    }
+
+    function renderActivity(items) {
+      const el = document.getElementById('activity-list');
+      if (!items.length) {
+        el.innerHTML = `<p class="text-sm text-gray-400 text-center py-4">Nenhuma atividade recente.</p>`;
+        return;
+      }
+
+      const TYPE_CONFIG = {
+        payment:     { icon: 'dollar-sign', bg: '#F0FDF4', color: '#15803D' },
+        new_student: { icon: 'user-plus',   bg: '#EFF6FF', color: '#1D4ED8' },
+        message:     { icon: 'message-circle', bg: '#F5F3FF', color: '#6D28D9' },
+      };
+      const TYPE_LABELS = {
+        payment:     'Pagamento recebido',
+        new_student: 'Novo aluno',
+        message:     'Mensagem recebida',
+      };
+
+      el.innerHTML = items.map(item => {
+        const cfg = TYPE_CONFIG[item.type] || { icon: 'activity', bg: '#F8FAFC', color: '#64748B' };
+        return `
+          <div class="flex items-center gap-3 py-2.5 border-b border-gray-50 last:border-0">
+            <div class="activity-dot" style="background:${cfg.bg}">
+              <i data-lucide="${cfg.icon}" class="w-4 h-4" style="color:${cfg.color}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-gray-900 truncate">${escHtml(item.student_name)}</p>
+              <p class="text-xs text-gray-400">${TYPE_LABELS[item.type] || item.type}</p>
+            </div>
+            <p class="text-xs text-gray-400 flex-shrink-0">${relativeTime(item.created_at)}</p>
+          </div>`;
+      }).join('');
+      lucide.createIcons();
+    }
+
+    /* ─── Gráficos ─────────────────────────────────────── */
+
+    let mrrChart = null;
+    let objChart = null;
+
+    function renderMrrChart(history) {
+      const ctx = document.getElementById('chart-mrr').getContext('2d');
+      if (mrrChart) mrrChart.destroy();
+
+      // Gradiente
+      const gradient = ctx.createLinearGradient(0, 0, 0, 200);
+      gradient.addColorStop(0, 'rgba(34, 197, 94, 0.2)');
+      gradient.addColorStop(1, 'rgba(34, 197, 94, 0)');
+
+      mrrChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: history.map(m => m.month),
+          datasets: [{
+            label: 'Receita',
+            data: history.map(m => m.amount),
+            borderColor: '#22C55E',
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.4,
+            pointBackgroundColor: '#22C55E',
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            borderWidth: 2,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => fmtCurrency(ctx.parsed.y),
+              },
+            },
+          },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { font: { family: 'DM Sans', size: 11 }, color: '#94A3B8' },
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: '#F1F5F9' },
+              ticks: {
+                font: { family: 'DM Sans', size: 11 },
+                color: '#94A3B8',
+                callback: v => v === 0 ? 'R$ 0' : `R$ ${(v / 1000).toFixed(0)}k`,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function renderObjChart(distribution) {
+      const ctx = document.getElementById('chart-objectives').getContext('2d');
+      if (objChart) objChart.destroy();
+
+      if (!distribution.length) {
+        ctx.canvas.parentElement.innerHTML = `
+          <div class="h-full flex items-center justify-center">
+            <p class="text-sm text-gray-400">Nenhum objetivo cadastrado</p>
+          </div>`;
+        return;
+      }
+
+      const labels = distribution.map(o => OBJ_LABELS[o.objective] || o.objective);
+      const data   = distribution.map(o => o.count);
+      const colors = distribution.map(o => OBJ_COLORS[o.objective] || '#94A3B8');
+
+      objChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels,
+          datasets: [{
+            data,
+            backgroundColor: colors,
+            borderWidth: 0,
+            hoverOffset: 6,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                padding: 14,
+                font: { family: 'DM Sans', size: 11 },
+                color: '#64748B',
+                usePointStyle: true,
+                pointStyleWidth: 8,
+              },
+            },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` ${ctx.parsed} aluno${ctx.parsed !== 1 ? 's' : ''}`,
+              },
+            },
+          },
+        },
+      });
+    }
+
+    /* ─── Carregamento principal ────────────────────────── */
+
+    async function loadDashboard() {
+      const res = await Api.get('/api/trainer/dashboard');
+      if (!res.success) {
+        Toast.error(res.message || 'Erro ao carregar dashboard.');
+        return;
+      }
+
+      const d = res.data;
+
+      renderMetrics(d);
+      renderToday(d.today_appointments);
+      renderAlerts(d);
+      renderActivity(d.recent_activity);
+      renderMrrChart(d.mrr_history);
+      renderObjChart(d.objectives_distribution);
+    }
+
+    /* ─── Init ──────────────────────────────────────────── */
+
     document.addEventListener('DOMContentLoaded', () => {
-      initLayout('Alunos', [
-        { label: 'Alunos' },
-      ]);
-      loadStudents();
+      initLayout('Dashboard', [{ label: 'Dashboard' }]);
+      loadDashboard();
     });
   </script>
 </body>

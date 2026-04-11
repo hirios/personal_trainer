@@ -8,5 +8,12 @@ from .student import Student
 from .workout import Workout, WorkoutExercise
 from .appointment import Appointment
 from .payment import Payment
+from .assessment import Assessment
+from .message import Message
 
-__all__ = ["User", "Trainer", "Student", "Workout", "WorkoutExercise", "Appointment", "Payment"]
+__all__ = [
+    "User", "Trainer", "Student",
+    "Workout", "WorkoutExercise",
+    "Appointment", "Payment",
+    "Assessment", "Message",
+]

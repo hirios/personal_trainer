@@ -478,6 +478,44 @@ def available_slots():
 
 
 # ------------------------------------------------------------------ #
+#  GET /api/appointments/student (público — próximas sessões aluno)   #
+# ------------------------------------------------------------------ #
+
+@appointments_bp.route("/student", methods=["GET"])
+def student_appointments():
+    """
+    Endpoint público — retorna os próximos agendamentos do aluno.
+    Query param: access_token (obrigatório)
+    Retorna até 3 sessões futuras com status scheduled ou confirmed.
+    """
+    access_token = (request.args.get("access_token") or "").strip()
+    if not access_token:
+        return _error("access_token é obrigatório.", 422)
+
+    student = Student.query.filter_by(access_token=access_token).first()
+    if not student or not student.is_active:
+        return _error("Link de acesso inválido ou expirado.", 404)
+
+    now = datetime.now(timezone.utc)
+
+    upcoming = (
+        Appointment.query
+        .filter(
+            Appointment.student_id == student.id,
+            Appointment.starts_at > now,
+            Appointment.status.in_(["scheduled", "confirmed"]),
+        )
+        .order_by(Appointment.starts_at.asc())
+        .limit(3)
+        .all()
+    )
+
+    return _success(data={
+        "appointments": [a.to_dict(include_student=False, include_trainer=True) for a in upcoming],
+    })
+
+
+# ------------------------------------------------------------------ #
 #  POST /api/appointments/book (público — aluno agenda via token)     #
 # ------------------------------------------------------------------ #
 

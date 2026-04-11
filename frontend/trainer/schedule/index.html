@@ -233,29 +233,53 @@
       overflow-y: auto;
       max-height: calc(100vh - 220px);
     }
+
+    /* ====== CONFIGURAÇÃO DE DISPONIBILIDADE ====== */
+    /* Toggle switch acessível */
+    .avail-toggle { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
+    .avail-toggle input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .avail-slider {
+      width: 40px; height: 22px; background: #E2E8F0; border-radius: 11px;
+      transition: background 0.2s; position: relative; flex-shrink: 0;
+    }
+    .avail-slider::before {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 16px; height: 16px; border-radius: 50%; background: #fff;
+      transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .avail-toggle input:checked + .avail-slider { background: #22C55E; }
+    .avail-toggle input:checked + .avail-slider::before { transform: translateX(18px); }
+
+    /* Row de dia na config */
+    .avail-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid #F1F5F9;
+    }
+    .avail-row:last-child { border-bottom: none; }
+    .avail-day-label { width: 36px; font-size: 13px; font-weight: 600; color: #334155; flex-shrink: 0; }
+    .avail-times { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .avail-times input[type=time] {
+      flex: 1; padding: 6px 8px; border: 1px solid #E2E8F0; border-radius: 10px;
+      font-size: 13px; color: #0F172A; background: #F8FAFC;
+      focus: outline-none;
+    }
+    .avail-times input[type=time]:focus { outline: none; border-color: #86EFAC; box-shadow: 0 0 0 2px #DCFCE7; }
+    .avail-times .avail-sep { font-size: 12px; color: #94A3B8; flex-shrink: 0; }
+    .avail-times.disabled { opacity: 0.35; pointer-events: none; }
   </style>
 
-  <!-- Shield anti-FOUC inline: executa sincronamente antes do primeiro paint.
-       Necessário porque layout.js é importado como módulo (sempre deferido). -->
-  <script>
-    (function () {
-      var s = document.createElement('style');
-      s.id = 'fouc-shield';
-      s.textContent = 'body{opacity:0;transition:opacity .15s}';
-      document.head.appendChild(s);
-    })();
-  </script>
   <script>window.API_BASE_URL = window.location.origin;</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
 </head>
 <body class="min-h-screen">
 
-<!-- Layout injetado por layout.js (sidebar desktop + bottom nav mobile) -->
-<div id="app-layout"></div>
-
-<!-- ============================================================
-     CONTEÚDO PRINCIPAL
-     ============================================================ -->
-<main id="main-content" class="lg:ml-64 min-h-screen pb-24 lg:pb-8">
+<div id="main-content" class="min-h-screen">
+<!-- Sidebar e bottom nav injetados pelo layout.js -->
+<!-- div#main-header vazio impede que layout.js injete um cabeçalho duplicado -->
+<div id="main-header" style="display:none" aria-hidden="true"></div>
 
   <!-- HEADER -->
   <div class="sticky top-0 z-30 bg-white/90 backdrop-blur-sm border-b border-gray-100 px-4 lg:px-8 py-4">
@@ -288,6 +312,11 @@
 
       <!-- Ações desktop -->
       <div class="hidden lg:flex items-center gap-2">
+        <button id="btn-availability-settings"
+          class="flex items-center gap-2 px-4 py-2 border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-medium transition-colors">
+          <i data-lucide="settings-2" class="w-4 h-4"></i>
+          Disponibilidade
+        </button>
         <button id="btn-new-appt-desktop"
           class="flex items-center gap-2 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm">
           <i data-lucide="plus" class="w-4 h-4"></i>
@@ -343,7 +372,7 @@
     </div>
   </div>
 
-</main>
+</div><!-- /main-content -->
 
 <!-- FAB mobile -->
 <button class="fab" id="fab-btn" aria-label="Novo agendamento">
@@ -532,6 +561,59 @@
 </div>
 
 
+<!-- ============================================================
+     MODAL: CONFIGURAR DISPONIBILIDADE
+     ============================================================ -->
+<div id="modal-availability" class="modal-overlay" role="dialog" aria-modal="true" aria-label="Configurar disponibilidade">
+  <div class="modal-sheet" style="max-width:520px">
+    <div class="modal-drag-handle"></div>
+    <div class="px-6 pt-4 pb-2 flex items-start justify-between">
+      <div>
+        <h2 class="text-lg font-bold text-gray-900">Configurar Disponibilidade</h2>
+        <p class="text-xs text-gray-500 mt-0.5">Defina seus horários disponíveis por dia da semana</p>
+      </div>
+      <button class="modal-close w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors" aria-label="Fechar">
+        <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+      </button>
+    </div>
+
+    <!-- Grade de dias × horários -->
+    <div class="px-6 pt-2" id="availability-config-body">
+      <!-- Renderizado via JS -->
+    </div>
+
+    <!-- Duração padrão da sessão -->
+    <div class="px-6 mt-4 pt-4 border-t border-gray-100">
+      <label class="block text-sm font-semibold text-gray-700 mb-2">
+        Duração padrão da sessão
+      </label>
+      <select id="avail-session-duration"
+        class="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100 bg-white">
+        <option value="30">30 minutos</option>
+        <option value="45">45 minutos</option>
+        <option value="60">60 minutos</option>
+        <option value="90">90 minutos</option>
+      </select>
+    </div>
+
+    <!-- Erro inline -->
+    <div id="avail-error" class="px-6 mt-2 text-sm text-red-500 hidden"></div>
+
+    <!-- Ações -->
+    <div class="px-6 mt-4 flex gap-3 pb-2">
+      <button id="btn-avail-cancel"
+        class="flex-1 py-3 border border-gray-200 text-gray-700 rounded-xl font-semibold text-sm hover:bg-gray-50 transition-colors">
+        Cancelar
+      </button>
+      <button id="btn-avail-save"
+        class="flex-1 py-3 bg-green-500 hover:bg-green-600 text-white rounded-xl font-semibold text-sm transition-colors">
+        Salvar disponibilidade
+      </button>
+    </div>
+  </div>
+</div>
+
+
 <!-- Toast container -->
 <div id="toast-container" class="fixed top-4 right-4 z-[200] flex flex-col gap-2 pointer-events-none"></div>
 
@@ -539,17 +621,26 @@
 <!-- ============================================================
      SCRIPTS
      ============================================================ -->
-<script type="module">
-import { api }    from '/frontend/js/api.js';
-import { getUser, requireAuth } from '/frontend/js/auth.js';
-import { initLayout } from '/frontend/js/components/layout.js';
-import { showToast } from '/frontend/js/components/toast.js';
+<script>
+/* Adaptadores de compatibilidade — o sistema usa globals (Api, Auth, Toast),
+   mas o código desta página foi originalmente escrito com imports ES6. */
+const api = {
+  get:  (...a) => Api.get(...a),
+  post: (...a) => Api.post(...a),
+  patch:(...a) => Api.patch(...a),
+  del:  (...a) => Api.del(...a),
+};
+function showToast(msg, type) {
+  if (type === 'error')   return Toast.error(msg);
+  if (type === 'warning') return Toast.warning(msg);
+  return Toast.success(msg);
+}
 
 // ----------------------------------------------------------------
 // Inicialização
 // ----------------------------------------------------------------
-requireAuth('trainer');
-initLayout({ active: 'schedule' });
+Auth.requireAuth('trainer');
+initLayout('Agenda', [{ label: 'Agenda' }]);
 lucide.createIcons();
 
 // ----------------------------------------------------------------
@@ -562,6 +653,7 @@ const state = {
   selectedDay: null,      // Date selecionado no mobile
   activeAppt: null,       // appointment aberto no modal de detalhe
   sessionDuration: 60,    // duração padrão do trainer
+  availability: {},       // grade de disponibilidade semanal do trainer
 };
 
 // ----------------------------------------------------------------
@@ -697,13 +789,31 @@ async function loadTrainerSettings() {
     const res = await api.get('/api/trainer/availability');
     if (res.success) {
       state.sessionDuration = res.data.session_duration;
-      // Pré-seleciona duração no form
+      state.availability    = res.data.availability || {};
+      // Pré-seleciona duração no form de agendamento
       const sel = document.getElementById('form-duration');
       if (sel) sel.value = String(state.sessionDuration);
     }
   } catch (e) {
     console.error('Erro ao carregar configurações:', e);
   }
+}
+
+/**
+ * Verifica se um determinado horário (hora inteira) está dentro da disponibilidade
+ * configurada pelo trainer para aquele dia da semana.
+ * @param {number} isoWeekday  1=seg … 7=dom
+ * @param {number} hour        hora inteira (ex: 8 para as 08h)
+ */
+function isHourAvailable(isoWeekday, hour) {
+  const key = String(isoWeekday);
+  const blocks = state.availability[key];
+  if (!blocks || blocks.length === 0) return false;
+  return blocks.some(block => {
+    const sh = parseInt(block.start.split(':')[0], 10);
+    const eh = parseInt(block.end.split(':')[0], 10);
+    return hour >= sh && hour < eh;
+  });
 }
 
 // ----------------------------------------------------------------
@@ -932,16 +1042,26 @@ function renderGridBody(days) {
 
     // Coluna de cada dia
     days.forEach((day, dayIdx) => {
+      // Converte getDay() (0=dom) para ISO weekday (1=seg…7=dom)
+      const isoWd = day.getDay() === 0 ? 7 : day.getDay();
+      const unavailable = !isHourAvailable(isoWd, hour);
+
       const cell = document.createElement('div');
-      cell.className = `hour-cell ${sameDay(day, today) ? 'today-col' : ''}`;
-      cell.dataset.day = dayIdx;
+      cell.className = [
+        'hour-cell',
+        sameDay(day, today) ? 'today-col' : '',
+        unavailable ? 'unavailable' : '',
+      ].join(' ').trim();
+      cell.dataset.day  = dayIdx;
       cell.dataset.hour = hour;
 
-      cell.addEventListener('click', () => {
-        const d = new Date(day);
-        d.setHours(hour, 0, 0, 0);
-        openFormModal(d);
-      });
+      if (!unavailable) {
+        cell.addEventListener('click', () => {
+          const d = new Date(day);
+          d.setHours(hour, 0, 0, 0);
+          openFormModal(d);
+        });
+      }
 
       body.appendChild(cell);
     });
@@ -1339,6 +1459,54 @@ function closeModal(id) {
 window.openFormModal = openFormModal;
 
 // ----------------------------------------------------------------
+// Swipe horizontal no mobile para trocar de dia
+// ----------------------------------------------------------------
+(function initMobileSwipe() {
+  const mobileView = document.getElementById('mobile-view');
+  let touchStartX = 0;
+  let touchStartY = 0;
+
+  mobileView.addEventListener('touchstart', (e) => {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  mobileView.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const dy = e.changedTouches[0].clientY - touchStartY;
+
+    // Só reage se o deslize foi predominantemente horizontal (≥ 50px) e não vertical
+    if (Math.abs(dx) < 50 || Math.abs(dy) > Math.abs(dx)) return;
+
+    const days = getWeekDays(state.currentWeek);
+    const currentIdx = days.findIndex(d => sameDay(d, state.selectedDay));
+
+    if (dx < 0) {
+      // Deslize para a esquerda → próximo dia
+      if (currentIdx < 6) {
+        state.selectedDay = days[currentIdx + 1];
+        renderMobile();
+      } else {
+        // Avança para próxima semana, primeiro dia
+        navigateWeek(1);
+        state.selectedDay = getWeekDays(state.currentWeek)[0];
+      }
+    } else {
+      // Deslize para a direita → dia anterior
+      if (currentIdx > 0) {
+        state.selectedDay = days[currentIdx - 1];
+        renderMobile();
+      } else {
+        // Volta para semana anterior, último dia
+        navigateWeek(-1);
+        state.selectedDay = getWeekDays(state.currentWeek)[6];
+      }
+    }
+    lucide.createIcons();
+  }, { passive: true });
+})();
+
+// ----------------------------------------------------------------
 // Responsividade: re-renderiza ao redimensionar
 // ----------------------------------------------------------------
 let resizeTimer;
@@ -1348,21 +1516,161 @@ window.addEventListener('resize', () => {
 });
 
 // ----------------------------------------------------------------
-// Boot
+// MODAL: Configurar Disponibilidade
 // ----------------------------------------------------------------
-state.currentWeek = getCurrentWeek();
-state.selectedDay = new Date();
+const AVAIL_DAYS = [
+  { key: '1', label: 'Seg' },
+  { key: '2', label: 'Ter' },
+  { key: '3', label: 'Qua' },
+  { key: '4', label: 'Qui' },
+  { key: '5', label: 'Sex' },
+  { key: '6', label: 'Sáb' },
+  { key: '7', label: 'Dom' },
+];
 
-await Promise.all([loadStudents(), loadTrainerSettings()]);
-await render();
+/**
+ * Renderiza as linhas de dia dentro do modal de disponibilidade,
+ * pré-preenchendo com os valores atuais de state.availability.
+ */
+function renderAvailabilityModal() {
+  const body     = document.getElementById('availability-config-body');
+  const durSel   = document.getElementById('avail-session-duration');
+  const errEl    = document.getElementById('avail-error');
 
-// Scroll automático até a hora atual na grade desktop
-const now = new Date();
-const scrollTarget = (now.getHours() - HOUR_START) * 60 - 60;
-const gridScroll = document.querySelector('.grid-scroll');
-if (gridScroll && scrollTarget > 0) {
-  gridScroll.scrollTop = scrollTarget;
+  errEl.classList.add('hidden');
+  durSel.value = String(state.sessionDuration);
+
+  body.innerHTML = AVAIL_DAYS.map(({ key, label }) => {
+    const blocks  = state.availability[key] || [];
+    const isOn    = blocks.length > 0;
+    const start   = isOn ? blocks[0].start : '06:00';
+    const end     = isOn ? blocks[0].end   : '22:00';
+
+    return `
+      <div class="avail-row">
+        <span class="avail-day-label">${label}</span>
+        <label class="avail-toggle" title="${isOn ? 'Disponível' : 'Indisponível'}">
+          <input type="checkbox" id="avail-toggle-${key}" ${isOn ? 'checked' : ''}
+                 onchange="toggleAvailDay('${key}')">
+          <span class="avail-slider"></span>
+        </label>
+        <div class="avail-times${isOn ? '' : ' disabled'}" id="avail-times-${key}">
+          <input type="time" id="avail-start-${key}" value="${start}"
+                 min="00:00" max="23:00" step="1800">
+          <span class="avail-sep">até</span>
+          <input type="time" id="avail-end-${key}" value="${end}"
+                 min="01:00" max="23:59" step="1800">
+        </div>
+      </div>
+    `;
+  }).join('');
 }
+
+/** Habilita/desabilita as inputs de hora do dia quando o toggle é clicado. */
+window.toggleAvailDay = function(key) {
+  const isOn  = document.getElementById(`avail-toggle-${key}`)?.checked;
+  const times = document.getElementById(`avail-times-${key}`);
+  if (times) {
+    if (isOn) times.classList.remove('disabled');
+    else      times.classList.add('disabled');
+  }
+};
+
+/** Lê o estado da UI e salva via API. */
+async function saveAvailability() {
+  const errEl  = document.getElementById('avail-error');
+  const btn    = document.getElementById('btn-avail-save');
+  errEl.classList.add('hidden');
+
+  // Monta objeto de disponibilidade
+  const availability = {};
+  for (const { key } of AVAIL_DAYS) {
+    const isOn  = document.getElementById(`avail-toggle-${key}`)?.checked;
+    const start = document.getElementById(`avail-start-${key}`)?.value;
+    const end   = document.getElementById(`avail-end-${key}`)?.value;
+
+    if (isOn) {
+      if (!start || !end) {
+        errEl.textContent = 'Informe os horários de início e fim para todos os dias ativos.';
+        errEl.classList.remove('hidden');
+        return;
+      }
+      if (start >= end) {
+        errEl.textContent = `O horário de início deve ser anterior ao fim (verifique ${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'][parseInt(key,10)-1]}).`;
+        errEl.classList.remove('hidden');
+        return;
+      }
+      availability[key] = [{ start, end }];
+    } else {
+      availability[key] = [];
+    }
+  }
+
+  const duration = parseInt(document.getElementById('avail-session-duration').value, 10);
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando…';
+
+  try {
+    const res = await api.patch('/api/trainer/availability', {
+      availability,
+      session_duration: duration,
+    });
+
+    if (res.success) {
+      state.availability    = res.data.availability;
+      state.sessionDuration = res.data.session_duration;
+      // Atualiza duração no form de criação
+      const durFormSel = document.getElementById('form-duration');
+      if (durFormSel) durFormSel.value = String(state.sessionDuration);
+
+      showToast('Disponibilidade atualizada!', 'success');
+      closeModal('modal-availability');
+      // Re-renderiza a grade para refletir novos horários disponíveis
+      await render();
+    } else {
+      errEl.textContent = res.message || 'Erro ao salvar disponibilidade.';
+      errEl.classList.remove('hidden');
+    }
+  } catch (e) {
+    errEl.textContent = 'Erro de conexão. Tente novamente.';
+    errEl.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar disponibilidade';
+  }
+}
+
+// Abre o modal de disponibilidade
+document.getElementById('btn-availability-settings').addEventListener('click', () => {
+  renderAvailabilityModal();
+  openModal('modal-availability');
+});
+
+document.getElementById('btn-avail-cancel').addEventListener('click', () => {
+  closeModal('modal-availability');
+});
+
+document.getElementById('btn-avail-save').addEventListener('click', saveAvailability);
+
+// ----------------------------------------------------------------
+// Boot — async IIFE para permitir await sem type="module"
+// ----------------------------------------------------------------
+(async function boot() {
+  state.currentWeek = getCurrentWeek();
+  state.selectedDay = new Date();
+
+  await Promise.all([loadStudents(), loadTrainerSettings()]);
+  await render();
+
+  // Scroll automático até a hora atual na grade desktop
+  const now = new Date();
+  const scrollTarget = (now.getHours() - HOUR_START) * 60 - 60;
+  const gridScroll = document.querySelector('.grid-scroll');
+  if (gridScroll && scrollTarget > 0) {
+    gridScroll.scrollTop = scrollTarget;
+  }
+})();
 </script>
 </body>
 </html>

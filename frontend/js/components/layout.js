@@ -28,9 +28,15 @@
 // Definição dos itens de navegação do trainer
 const NAV_ITEMS = [
   {
+    id: "dashboard",
+    label: "Dashboard",
+    href: "/frontend/trainer/index.html",
+    icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>`,
+  },
+  {
     id: "students",
     label: "Alunos",
-    href: "/frontend/trainer/index.html",
+    href: "/frontend/trainer/students/index.html",
     icon: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   },
   {
@@ -58,16 +64,12 @@ const NAV_ITEMS = [
  */
 function _getActiveNavId() {
   const path = window.location.pathname;
-  // Rotas que mapeiam para "students"
-  if (path.includes("/trainer/index") || path.includes("/trainer/students")) {
-    return "students";
-  }
-  for (const item of NAV_ITEMS) {
-    if (path.includes(item.href.split("/").pop().replace(".html", ""))) {
-      return item.id;
-    }
-  }
-  return "students";
+  if (path.includes("/trainer/students")) return "students";
+  if (path.includes("/trainer/schedule")) return "schedule";
+  if (path.includes("/trainer/payments")) return "financial";
+  if (path.includes("/trainer/profile"))  return "profile";
+  // Default: dashboard (cobre /trainer/index.html e raiz da área trainer)
+  return "dashboard";
 }
 
 /**
@@ -96,7 +98,7 @@ function _renderSidebar(user) {
 
   return `
     <aside id="sidebar" role="navigation" aria-label="Menu principal">
-      <!-- Logo -->
+      <!-- Logo (sempre leva ao dashboard) -->
       <div class="sidebar-logo">
         <a href="/frontend/trainer/index.html" class="logo-link">
           <div class="logo-icon">

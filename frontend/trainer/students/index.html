@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alunos — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
+    h1,h2,h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    /* Filtro ativo */
+    .filter-btn { transition: all 0.15s; }
+    .filter-btn.active {
+      background: #22C55E; color: #fff; border-color: #22C55E;
+    }
+
+    /* Skeleton loading */
+    .skeleton {
+      background: linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* Card do aluno */
+    .student-card {
+      background: #fff;
+      border: 1px solid #F1F5F9;
+      border-radius: 20px;
+      padding: 20px;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.15s, border-color 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+    .student-card:hover {
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      transform: translateY(-1px);
+      border-color: #E2E8F0;
+    }
+
+    /* Avatar com iniciais */
+    .avatar-ring {
+      width: 52px; height: 52px; border-radius: 50%;
+      flex-shrink: 0; position: relative;
+    }
+    .avatar-img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+    .avatar-initials {
+      width: 100%; height: 100%; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 18px; font-weight: 700; color: #fff;
+    }
+
+    /* Status dot */
+    .status-dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* FAB */
+    .fab {
+      position: fixed; bottom: 88px; right: 20px;
+      width: 56px; height: 56px; border-radius: 50%;
+      background: #22C55E; color: #fff;
+      box-shadow: 0 4px 14px rgba(34,197,94,0.45);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; border: none;
+      transition: background 0.2s, transform 0.15s;
+      z-index: 50;
+    }
+    .fab:hover { background: #15803D; transform: scale(1.05); }
+    @media (min-width: 1024px) { .fab { display: none; } }
+  </style>
+
+  <script>window.API_BASE_URL = window.location.origin;</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/modal.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
+</head>
+
+<body>
+  <div id="main-content" class="min-h-screen">
+    <!-- Header, sidebar e bottom nav injetados pelo layout.js -->
+
+    <div class="px-4 lg:px-6 pb-6">
+
+      <!-- Busca + Ações (desktop) -->
+      <div class="flex flex-col sm:flex-row gap-3 mb-5">
+        <div class="relative flex-1">
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+            <i data-lucide="search" class="w-4 h-4"></i>
+          </span>
+          <input
+            type="text"
+            id="search-input"
+            placeholder="Buscar por nome, e-mail ou telefone..."
+            class="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl text-sm
+                   focus:outline-none focus:border-green-400 focus:ring-2 focus:ring-green-100
+                   bg-white"
+          />
+        </div>
+
+        <select id="sort-select"
+          class="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white
+                 focus:outline-none focus:border-green-400 cursor-pointer">
+          <option value="name">Nome A–Z</option>
+          <option value="created_at">Mais recentes</option>
+          <option value="last_access">Último acesso</option>
+        </select>
+
+        <a href="/frontend/trainer/students/new.html"
+           class="hidden lg:flex items-center gap-2 px-5 py-2.5 bg-green-500 hover:bg-green-600
+                  text-white text-sm font-semibold rounded-xl transition-colors">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          Novo aluno
+        </a>
+      </div>
+
+      <!-- Filtros -->
+      <div class="flex gap-2 flex-wrap mb-6" id="filter-bar">
+        <button class="filter-btn active px-4 py-1.5 text-sm font-medium border border-gray-200
+                       rounded-full bg-white text-gray-600" data-filter="all">
+          Todos
+        </button>
+        <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200
+                       rounded-full bg-white text-gray-600" data-filter="active">
+          Ativos
+        </button>
+        <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200
+                       rounded-full bg-white text-gray-600" data-filter="inactive">
+          Inativos
+        </button>
+        <button class="filter-btn px-4 py-1.5 text-sm font-medium border border-gray-200
+                       rounded-full bg-white text-gray-600" data-filter="overdue">
+          Inadimplentes
+        </button>
+      </div>
+
+      <!-- Contador -->
+      <p id="result-count" class="text-sm text-gray-400 mb-4"></p>
+
+      <!-- Grid de cards -->
+      <div id="students-grid"
+           class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+      </div>
+
+      <!-- Paginação -->
+      <div id="pagination" class="flex justify-center gap-2 mt-8 hidden"></div>
+    </div>
+  </div>
+
+  <!-- FAB mobile -->
+  <button class="fab" onclick="window.location.href='/frontend/trainer/students/new.html'"
+          aria-label="Cadastrar novo aluno">
+    <i data-lucide="plus" class="w-6 h-6"></i>
+  </button>
+
+  <script>
+    Auth.requireAuth('trainer');
+
+    let currentFilter = 'all';
+    let currentSort   = 'name';
+    let currentPage   = 1;
+    let searchTimeout = null;
+
+    const OBJECTIVE_CONFIG = {
+      emagrecimento: { label: 'Emagrecimento', bg: '#FFF7ED', color: '#C2410C' },
+      hipertrofia:   { label: 'Hipertrofia',   bg: '#EFF6FF', color: '#1D4ED8' },
+      condicionamento:{ label: 'Condicionamento', bg: '#F5F3FF', color: '#6D28D9' },
+      saude:         { label: 'Saúde',          bg: '#F0FDF4', color: '#15803D' },
+      reabilitacao:  { label: 'Reabilitação',   bg: '#FFFBEB', color: '#92400E' },
+    };
+
+    const STATUS_CONFIG = {
+      active:          { label: 'Ativo',         color: '#22C55E', dot: '#22C55E' },
+      pending_payment: { label: 'Inadimplente',  color: '#F97316', dot: '#F97316' },
+      inactive:        { label: 'Inativo',       color: '#94A3B8', dot: '#94A3B8' },
+    };
+
+    function getInitials(name = '') {
+      return name.trim().split(/\s+/).slice(0, 2).map(n => n[0]).join('').toUpperCase();
+    }
+
+    const AVATAR_COLORS = [
+      '#22C55E','#3B82F6','#8B5CF6','#F97316','#EC4899','#14B8A6','#F59E0B',
+    ];
+    function getAvatarColor(name = '') {
+      let hash = 0;
+      for (const c of name) hash = (hash * 31 + c.charCodeAt(0)) & 0xFFFFFF;
+      return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+    }
+
+    function formatLastAccess(isoDate) {
+      if (!isoDate) return 'Nunca acessou';
+      const diff = Math.floor((Date.now() - new Date(isoDate)) / 86400000);
+      if (diff === 0) return 'Hoje';
+      if (diff === 1) return 'Ontem';
+      if (diff < 7)  return `${diff} dias atrás`;
+      if (diff < 30) return `${Math.floor(diff/7)} sem. atrás`;
+      return `${Math.floor(diff/30)} meses atrás`;
+    }
+
+    function renderCard(student) {
+      const obj  = OBJECTIVE_CONFIG[student.objective] || { label: student.objective || '—', bg: '#F8FAFC', color: '#64748B' };
+      const stat = STATUS_CONFIG[student.status]       || STATUS_CONFIG.inactive;
+      const initials    = getInitials(student.name);
+      const avatarColor = getAvatarColor(student.name);
+      const lastAccess  = formatLastAccess(student.last_access_at);
+
+      const avatarHTML = student.avatar_url
+        ? `<img src="${student.avatar_url}" alt="${student.name}" class="avatar-img" />`
+        : `<div class="avatar-initials" style="background:${avatarColor}">${initials}</div>`;
+
+      return `
+        <div class="student-card" onclick="goToDetail('${student.id}')" role="button" tabindex="0"
+             onkeydown="if(event.key==='Enter') goToDetail('${student.id}')">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="avatar-ring">${avatarHTML}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="font-semibold text-gray-900 text-base truncate">${escHtml(student.name)}</h3>
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <div class="status-dot" style="background:${stat.dot}"></div>
+                  <span class="text-xs font-medium" style="color:${stat.color}">${stat.label}</span>
+                </div>
+              </div>
+              <p class="text-xs text-gray-400 truncate mt-0.5">${escHtml(student.email)}</p>
+            </div>
+          </div>
+
+          ${student.objective ? `
+          <div class="mb-3">
+            <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+                  style="background:${obj.bg};color:${obj.color}">
+              ${obj.label}
+            </span>
+          </div>` : ''}
+
+          <div class="flex items-center gap-1.5 text-xs text-gray-400 mb-4">
+            <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+            <span>${lastAccess}</span>
+          </div>
+
+          <div class="flex gap-2">
+            <button onclick="event.stopPropagation(); openWhatsApp('${escHtml(student.phone || '')}')"
+                    class="flex-1 flex items-center justify-center gap-1.5 py-2 border border-gray-200
+                           rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                    title="Enviar mensagem">
+              <i data-lucide="message-circle" class="w-3.5 h-3.5"></i>
+              Mensagem
+            </button>
+            <button onclick="event.stopPropagation(); goToDetail('${student.id}')"
+                    class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-50
+                           rounded-xl text-xs font-semibold text-green-700 hover:bg-green-100 transition-colors">
+              <i data-lucide="user" class="w-3.5 h-3.5"></i>
+              Ver perfil
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSkeletons(count = 6) {
+      return Array.from({ length: count }, () => `
+        <div class="student-card pointer-events-none">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="skeleton" style="width:52px;height:52px;border-radius:50%;flex-shrink:0"></div>
+            <div class="flex-1 space-y-2 pt-1">
+              <div class="skeleton h-4 w-3/4"></div>
+              <div class="skeleton h-3 w-1/2"></div>
+            </div>
+          </div>
+          <div class="skeleton h-6 w-28 rounded-full mb-3"></div>
+          <div class="skeleton h-3 w-32 mb-4"></div>
+          <div class="flex gap-2">
+            <div class="skeleton flex-1 h-8 rounded-xl"></div>
+            <div class="skeleton flex-1 h-8 rounded-xl"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function renderEmpty(hasSearch) {
+      if (hasSearch) {
+        return `
+          <div class="col-span-full flex flex-col items-center justify-center py-16 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+              <i data-lucide="search-x" class="w-7 h-7 text-gray-400"></i>
+            </div>
+            <h3 class="font-semibold text-gray-700 mb-1">Nenhum aluno encontrado</h3>
+            <p class="text-sm text-gray-400">Tente outro termo de busca ou mude os filtros.</p>
+          </div>`;
+      }
+      return `
+        <div class="col-span-full flex flex-col items-center justify-center py-16 text-center">
+          <div class="w-20 h-20 bg-green-50 rounded-3xl flex items-center justify-center mb-5">
+            <i data-lucide="users" class="w-9 h-9 text-green-400"></i>
+          </div>
+          <h3 class="font-bold text-gray-800 text-lg mb-2">Nenhum aluno ainda</h3>
+          <p class="text-sm text-gray-400 mb-6 max-w-xs">
+            Cadastre seu primeiro aluno e comece a gerenciar treinos, avaliações e pagamentos.
+          </p>
+          <a href="/frontend/trainer/students/new.html"
+             class="flex items-center gap-2 px-6 py-3 bg-green-500 hover:bg-green-600
+                    text-white font-semibold rounded-xl transition-colors text-sm">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            Cadastrar primeiro aluno
+          </a>
+        </div>`;
+    }
+
+    async function loadStudents(page = 1) {
+      const grid = document.getElementById('students-grid');
+      grid.innerHTML = renderSkeletons();
+
+      const searchVal = document.getElementById('search-input').value.trim();
+      const params = { page, per_page: 12, sort: currentSort };
+      if (searchVal)                    params.search  = searchVal;
+      if (currentFilter === 'active')   params.status  = 'active';
+      if (currentFilter === 'inactive') params.status  = 'inactive';
+      if (currentFilter === 'overdue')  params.overdue = 'true';
+
+      const result = await Api.get('/api/students/', params);
+      if (!result.success) {
+        Toast.error(result.message || 'Erro ao carregar alunos.');
+        grid.innerHTML = '';
+        return;
+      }
+
+      const { students, pagination } = result.data;
+      currentPage = pagination.page;
+
+      document.getElementById('result-count').textContent =
+        pagination.total === 0 ? '' :
+        `${pagination.total} aluno${pagination.total !== 1 ? 's' : ''}`;
+
+      grid.innerHTML = students.length === 0
+        ? renderEmpty(!!searchVal || currentFilter !== 'all')
+        : students.map(renderCard).join('');
+
+      lucide.createIcons();
+      renderPagination(pagination);
+    }
+
+    function renderPagination(p) {
+      const el = document.getElementById('pagination');
+      if (p.pages <= 1) { el.classList.add('hidden'); return; }
+      el.classList.remove('hidden');
+
+      const btn = (label, pg, disabled, active) => `
+        <button onclick="loadStudents(${pg})"
+          class="w-9 h-9 rounded-xl text-sm font-semibold border transition-colors
+          ${active ? 'bg-green-500 text-white border-green-500' :
+            disabled ? 'text-gray-300 border-gray-100 cursor-default' :
+            'text-gray-600 border-gray-200 hover:bg-gray-50'}"
+          ${disabled ? 'disabled' : ''}>
+          ${label}
+        </button>`;
+
+      let html = btn('‹', p.page - 1, !p.has_prev, false);
+      for (let i = 1; i <= p.pages; i++) {
+        if (i === 1 || i === p.pages || Math.abs(i - p.page) <= 1) {
+          html += btn(i, i, false, i === p.page);
+        } else if (Math.abs(i - p.page) === 2) {
+          html += `<span class="w-9 h-9 flex items-center justify-center text-gray-400">…</span>`;
+        }
+      }
+      html += btn('›', p.page + 1, !p.has_next, false);
+      el.innerHTML = html;
+    }
+
+    function goToDetail(id) {
+      window.location.href = `/frontend/trainer/students/detail.html?id=${id}`;
+    }
+
+    function openWhatsApp(phone) {
+      if (!phone) { Toast.warning('Aluno sem telefone cadastrado.'); return; }
+      const num = phone.replace(/\D/g, '');
+      window.open(`https://wa.me/55${num}`, '_blank');
+    }
+
+    function escHtml(str = '') {
+      return String(str)
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;');
+    }
+
+    document.getElementById('filter-bar').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-filter]');
+      if (!btn) return;
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      loadStudents(1);
+    });
+
+    document.getElementById('search-input').addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => loadStudents(1), 300);
+    });
+
+    document.getElementById('sort-select').addEventListener('change', (e) => {
+      currentSort = e.target.value;
+      loadStudents(1);
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initLayout('Alunos', [
+        { label: 'Dashboard', href: '/frontend/trainer/index.html' },
+        { label: 'Alunos' },
+      ]);
+      loadStudents();
+    });
+  </script>
+</body>
+</html>

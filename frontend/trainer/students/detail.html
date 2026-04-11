@@ -77,6 +77,71 @@
       padding: 48px 24px; text-align: center;
     }
 
+    /* ── Módulo 7: Chat de mensagens ── */
+    .chat-viewport {
+      display: flex; flex-direction: column;
+      height: calc(100vh - 340px); min-height: 360px;
+      background: #fff; border-radius: 20px; border: 1px solid #F1F5F9;
+      overflow: hidden;
+    }
+    .chat-scroll {
+      flex: 1; overflow-y: auto; padding: 16px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .chat-row { display: flex; flex-direction: column; margin-bottom: 2px; }
+    .chat-row-trainer { align-items: flex-end; }
+    .chat-row-student { align-items: flex-start; }
+    .chat-bubble {
+      max-width: 72%; padding: 10px 14px; border-radius: 18px;
+      font-size: 13.5px; line-height: 1.55; word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .chat-bubble-trainer {
+      background: #22C55E; color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-bubble-student {
+      background: #F1F5F9; color: #0F172A;
+      border-bottom-left-radius: 4px;
+    }
+    .chat-ts {
+      font-size: 10px; color: #94A3B8; margin-top: 3px;
+      padding: 0 4px;
+    }
+    .chat-date-divider {
+      text-align: center; font-size: 11px; font-weight: 600;
+      color: #94A3B8; margin: 12px 0 8px; letter-spacing: 0.04em;
+    }
+    .chat-input-area {
+      border-top: 1px solid #F1F5F9; padding: 12px 16px;
+      display: flex; align-items: flex-end; gap: 10px; background: #fff;
+    }
+    #message-textarea {
+      flex: 1; padding: 10px 14px; border-radius: 18px;
+      border: 1.5px solid #E2E8F0; font-size: 14px;
+      font-family: 'DM Sans', sans-serif; color: #0F172A;
+      resize: none; outline: none; max-height: 120px; overflow-y: auto;
+      transition: border-color 0.15s;
+    }
+    #message-textarea:focus { border-color: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+    #btn-send-msg {
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+      background: #22C55E; color: #fff; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.15s, transform 0.1s;
+    }
+    #btn-send-msg:hover { background: #15803D; }
+    #btn-send-msg:active { transform: scale(0.93); }
+    #btn-send-msg:disabled { background: #BBF7D0; cursor: default; }
+    /* Badge no tab de mensagens */
+    .msg-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: #F97316; color: #fff; border-radius: 999px;
+      font-size: 10px; font-weight: 700;
+      min-width: 18px; height: 18px; padding: 0 5px;
+      margin-left: 5px; vertical-align: middle;
+    }
+
     /* ── Módulo 4: Avaliação física ── */
 
     /* Resumo automático */
@@ -431,9 +496,10 @@
                   <i data-lucide="dollar-sign" class="w-3.5 h-3.5"></i> Financeiro
                 </span>
               </button>
-              <button class="tab-btn" data-tab="messages" onclick="switchTab('messages')">
+              <button class="tab-btn" data-tab="messages" onclick="switchTab('messages')" id="tab-btn-messages">
                 <span class="flex items-center gap-1.5">
                   <i data-lucide="message-square" class="w-3.5 h-3.5"></i> Mensagens
+                  <span id="msg-unread-badge" class="msg-badge hidden">0</span>
                 </span>
               </button>
             </div>
@@ -839,15 +905,48 @@
 
           <!-- ABA 6: Mensagens -->
           <div class="tab-content" id="tab-messages">
-            <div class="coming-soon-card">
-              <div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <i data-lucide="message-square" class="w-6 h-6 text-pink-400"></i>
-              </div>
-              <h3 class="font-bold text-gray-700 mb-2">Mensagens — Módulo 7</h3>
-              <p class="text-sm text-gray-400 max-w-sm mx-auto">
-                Chat interno e envio de mensagens via WhatsApp pelo Módulo 7.
-              </p>
+
+            <!-- Botão de carregar mais (infinite scroll reverso) -->
+            <div id="msgs-load-more-wrap" class="text-center mb-3 hidden">
+              <button id="btn-load-more-msgs"
+                class="text-sm font-semibold text-green-600 hover:underline px-4 py-1.5">
+                ↑ Carregar mensagens mais antigas
+              </button>
             </div>
+
+            <!-- Viewport do chat -->
+            <div class="chat-viewport">
+              <div id="chat-scroll" class="chat-scroll">
+                <!-- Skeleton enquanto carrega -->
+                <div id="chat-loading" class="flex-1 flex items-center justify-center py-12">
+                  <div class="text-center">
+                    <div class="w-10 h-10 border-2 border-green-200 border-t-green-500 rounded-full animate-spin mx-auto mb-3"></div>
+                    <p class="text-sm text-gray-400">Carregando conversa…</p>
+                  </div>
+                </div>
+                <!-- Mensagens injetadas via JS -->
+                <div id="chat-messages"></div>
+              </div>
+
+              <!-- Input de envio -->
+              <div class="chat-input-area">
+                <textarea
+                  id="message-textarea"
+                  placeholder="Digite uma mensagem…"
+                  rows="1"
+                ></textarea>
+                <button id="btn-send-msg" title="Enviar (Ctrl+Enter)">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                       fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <p class="text-xs text-gray-400 mt-2 text-right">
+              Enter = nova linha &nbsp;·&nbsp; Ctrl+Enter = enviar
+            </p>
           </div>
 
         </div><!-- /tab area -->
@@ -929,8 +1028,9 @@
         btnNovaFicha.href = `/frontend/trainer/workouts/builder.html?student_id=${studentId}`;
       }
 
-      // Carrega fichas em paralelo
+      // Carrega fichas em paralelo e contagem de não lidas
       loadWorkouts();
+      loadUnreadCount();
 
       // Ativa a aba do hash da URL
       const hash = window.location.hash.replace('#', '') || 'overview';
@@ -1980,6 +2080,276 @@
       const [y, m, d] = iso.split('-');
       return `${d}/${m}/${y}`;
     }
+
+    // ================================================================
+    //  MÓDULO 7 — Chat de mensagens
+    // ================================================================
+
+    let chatLoaded   = false;
+    let chatHasMore  = false;
+    let chatOldestId = null;
+    let chatPollTimer = null;
+    const POLL_INTERVAL = 15000; // 15 segundos
+
+    // --- Helpers de timestamp relativo ---
+    function relativeTime(isoStr) {
+      if (!isoStr) return '';
+      const now  = new Date();
+      const date = new Date(isoStr);
+      const diff = Math.floor((now - date) / 1000); // segundos
+
+      if (diff < 60)           return 'agora';
+      if (diff < 3600)         return `há ${Math.floor(diff / 60)} min`;
+      if (diff < 86400)        return `hoje ${date.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}`;
+      if (diff < 172800)       return `ontem ${date.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'})}`;
+      return date.toLocaleDateString('pt-BR', {day:'2-digit',month:'short'}) +
+             ' ' + date.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    }
+
+    function dayLabel(isoStr) {
+      const d = new Date(isoStr);
+      const now = new Date();
+      const diff = Math.floor((now - d) / 86400000);
+      if (diff === 0) return 'Hoje';
+      if (diff === 1) return 'Ontem';
+      return d.toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'long'});
+    }
+
+    // --- Renderiza lista de mensagens no chat ---
+    function renderMessages(msgs, prepend = false) {
+      const container = document.getElementById('chat-messages');
+      let lastDate = prepend ? null : (container.dataset.lastDate || null);
+
+      const fragment = document.createDocumentFragment();
+
+      msgs.forEach(m => {
+        const msgDate = m.created_at ? m.created_at.slice(0, 10) : null;
+
+        // Divisor de data
+        if (msgDate && msgDate !== lastDate) {
+          const div = document.createElement('div');
+          div.className = 'chat-date-divider';
+          div.textContent = dayLabel(m.created_at);
+          fragment.appendChild(div);
+          lastDate = msgDate;
+        }
+
+        const row = document.createElement('div');
+        row.className = `chat-row ${m.sender_role === 'trainer' ? 'chat-row-trainer' : 'chat-row-student'}`;
+        row.dataset.id = m.id;
+
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble ${m.sender_role === 'trainer' ? 'chat-bubble-trainer' : 'chat-bubble-student'}`;
+        bubble.textContent = m.content;
+
+        const ts = document.createElement('div');
+        ts.className = 'chat-ts';
+        ts.textContent = relativeTime(m.created_at);
+        ts.title = m.created_at ? new Date(m.created_at).toLocaleString('pt-BR') : '';
+
+        row.appendChild(bubble);
+        row.appendChild(ts);
+        fragment.appendChild(row);
+      });
+
+      if (!prepend) {
+        container.dataset.lastDate = lastDate || '';
+        container.appendChild(fragment);
+      } else {
+        container.insertBefore(fragment, container.firstChild);
+      }
+    }
+
+    // --- Carrega histórico inicial ---
+    async function loadChat() {
+      if (!studentId) return;
+      document.getElementById('chat-loading').style.display = 'flex';
+      document.getElementById('chat-messages').innerHTML = '';
+
+      try {
+        const res = await Api.get(`/api/messages/${studentId}`);
+        if (!res.success) { Toast.error(res.message || 'Erro ao carregar mensagens.'); return; }
+
+        document.getElementById('chat-loading').style.display = 'none';
+
+        const { messages, has_more } = res.data;
+        if (messages.length > 0) {
+          chatOldestId = messages[0].id;
+          renderMessages(messages);
+          scrollChatToBottom();
+        } else {
+          document.getElementById('chat-messages').innerHTML =
+            '<div class="text-center py-12 text-sm text-gray-400">Nenhuma mensagem ainda. Diga olá! 👋</div>';
+        }
+
+        chatHasMore = has_more;
+        document.getElementById('msgs-load-more-wrap').classList.toggle('hidden', !has_more);
+
+        // Marca mensagens do aluno como lidas
+        await Api.patch(`/api/messages/${studentId}/read`, {});
+        setUnreadBadge(0);
+      } catch (e) {
+        Toast.error('Erro de conexão ao carregar mensagens.');
+      }
+    }
+
+    // --- Carrega mensagens mais antigas (infinite scroll reverso) ---
+    async function loadOlderMessages() {
+      if (!chatOldestId || !chatHasMore) return;
+      const btn = document.getElementById('btn-load-more-msgs');
+      btn.textContent = 'Carregando…';
+      btn.disabled = true;
+
+      try {
+        const res = await Api.get(`/api/messages/${studentId}?before_id=${chatOldestId}`);
+        if (!res.success) { Toast.error(res.message || 'Erro.'); return; }
+
+        const { messages, has_more } = res.data;
+        if (messages.length > 0) {
+          chatOldestId = messages[0].id;
+          const scroll = document.getElementById('chat-scroll');
+          const prevH = scroll.scrollHeight;
+          renderMessages(messages, true);
+          // Mantém posição de scroll após inserir conteúdo no topo
+          scroll.scrollTop += scroll.scrollHeight - prevH;
+        }
+
+        chatHasMore = has_more;
+        document.getElementById('msgs-load-more-wrap').classList.toggle('hidden', !has_more);
+      } catch (e) {
+        Toast.error('Erro de conexão.');
+      } finally {
+        btn.textContent = '↑ Carregar mensagens mais antigas';
+        btn.disabled = false;
+      }
+    }
+
+    // --- Polling: verifica novas mensagens ---
+    async function pollMessages() {
+      if (!studentId || !chatLoaded) return;
+      try {
+        const res = await Api.get(`/api/messages/${studentId}`);
+        if (!res.success) return;
+        const { messages } = res.data;
+        if (!messages.length) return;
+
+        const container = document.getElementById('chat-messages');
+        const lastRendered = container.querySelector('[data-id]:last-child')?.dataset.id;
+        const latest = messages[messages.length - 1];
+
+        if (latest.id !== lastRendered) {
+          // Há mensagens novas — re-renderiza apenas as que faltam
+          const lastIdx = lastRendered
+            ? messages.findIndex(m => m.id === lastRendered)
+            : -1;
+          const newMsgs = lastIdx >= 0 ? messages.slice(lastIdx + 1) : messages;
+          if (newMsgs.length > 0) {
+            renderMessages(newMsgs);
+            scrollChatToBottom();
+            // Marca como lidas automaticamente
+            await Api.patch(`/api/messages/${studentId}/read`, {});
+            setUnreadBadge(0);
+          }
+        }
+      } catch (_) { /* silencioso */ }
+    }
+
+    function startChatPolling() {
+      stopChatPolling();
+      chatPollTimer = setInterval(pollMessages, POLL_INTERVAL);
+    }
+
+    function stopChatPolling() {
+      if (chatPollTimer) { clearInterval(chatPollTimer); chatPollTimer = null; }
+    }
+
+    function scrollChatToBottom() {
+      const scroll = document.getElementById('chat-scroll');
+      if (scroll) scroll.scrollTop = scroll.scrollHeight;
+    }
+
+    // --- Enviar mensagem ---
+    async function sendMessage() {
+      const ta  = document.getElementById('message-textarea');
+      const btn = document.getElementById('btn-send-msg');
+      const content = ta.value.trim();
+      if (!content || !studentId) return;
+
+      btn.disabled = true;
+      try {
+        const res = await Api.post('/api/messages/', { student_id: studentId, content });
+        if (res.success) {
+          ta.value = '';
+          ta.style.height = '';
+          renderMessages([res.data.message]);
+          scrollChatToBottom();
+        } else {
+          Toast.error(res.message || 'Erro ao enviar mensagem.');
+        }
+      } catch (e) {
+        Toast.error('Erro de conexão.');
+      } finally {
+        btn.disabled = false;
+        ta.focus();
+      }
+    }
+
+    // --- Badge de não lidas ---
+    function setUnreadBadge(count) {
+      const badge = document.getElementById('msg-unread-badge');
+      if (!badge) return;
+      if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+    }
+
+    // --- Event listeners do chat ---
+    document.getElementById('btn-send-msg').addEventListener('click', sendMessage);
+
+    document.getElementById('message-textarea').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    // Auto-resize da textarea
+    document.getElementById('message-textarea').addEventListener('input', function () {
+      this.style.height = 'auto';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+    });
+
+    document.getElementById('btn-load-more-msgs').addEventListener('click', loadOlderMessages);
+
+    // --- Carrega contagem de não lidas ao inicializar a página ---
+    async function loadUnreadCount() {
+      if (!studentId) return;
+      try {
+        const res = await Api.get('/api/messages/unread-count');
+        if (res.success) {
+          const entry = res.data.unread.find(u => u.student_id === studentId);
+          if (entry) setUnreadBadge(entry.count);
+        }
+      } catch (_) {}
+    }
+
+    // --- Hook no switchTab para ativar/desativar polling ---
+    const _origSwitchTab = switchTab;
+    switchTab = function(tabId) {
+      _origSwitchTab(tabId);
+      if (tabId === 'messages') {
+        if (!chatLoaded) {
+          chatLoaded = true;
+          loadChat();
+        }
+        startChatPolling();
+      } else {
+        stopChatPolling();
+      }
+    };
 
     // --- Init ---
     document.addEventListener('DOMContentLoaded', () => {
