@@ -9,11 +9,12 @@ from .workout import Workout, WorkoutExercise
 from .appointment import Appointment
 from .payment import Payment
 from .assessment import Assessment
+from .assessment_request import AssessmentRequest
 from .message import Message
 
 __all__ = [
     "User", "Trainer", "Student",
     "Workout", "WorkoutExercise",
     "Appointment", "Payment",
-    "Assessment", "Message",
+    "Assessment", "AssessmentRequest", "Message",
 ]

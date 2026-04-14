@@ -214,14 +214,25 @@
     }
 
     function relativeTime(iso) {
-      const diff = Math.floor((Date.now() - new Date(iso)) / 1000);
-      if (diff < 60)   return 'agora mesmo';
-      if (diff < 3600) return `${Math.floor(diff / 60)}min atrás`;
-      if (diff < 86400) return `${Math.floor(diff / 3600)}h atrás`;
+      // Garante parse como UTC (adiciona Z se não houver sufixo de fuso)
+      const parsed = iso && /[Z+\-]/.test(iso.slice(10)) ? iso : (iso || '') + 'Z';
+      const diff = Math.floor((Date.now() - new Date(parsed)) / 1000);
+      if (diff < 0 || diff < 60)   return 'agora mesmo';
+      const mins = Math.floor(diff / 60);
+      if (mins < 5)   return `há ${mins} min`;
+      if (mins < 10)  return 'há 5 min';
+      if (mins < 15)  return 'há 10 min';
+      if (mins < 30)  return 'há 15 min';
+      if (mins < 60)  return 'há 30 min';
+      const hrs = Math.floor(diff / 3600);
+      const remMins = Math.floor((diff % 3600) / 60);
+      if (hrs === 1 && remMins < 30) return 'há 1 hora';
+      if (hrs === 1) return 'há 1h30';
+      if (hrs < 24)  return `há ${hrs} horas`;
       const days = Math.floor(diff / 86400);
       if (days === 1) return 'ontem';
-      if (days < 7)  return `${days} dias atrás`;
-      return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+      if (days < 7)  return `há ${days} dias`;
+      return new Date(parsed).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
     }
 
     function escHtml(str = '') {

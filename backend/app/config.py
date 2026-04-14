@@ -63,9 +63,10 @@ class BaseConfig:
         else "https://api.asaas.com/v3"
     )
 
-    ZAPI_INSTANCE_ID = os.environ.get("ZAPI_INSTANCE_ID", "")
-    ZAPI_TOKEN = os.environ.get("ZAPI_TOKEN", "")
-    ZAPI_CLIENT_TOKEN = os.environ.get("ZAPI_CLIENT_TOKEN", "")
+    # Evolution API (WhatsApp)
+    EVOLUTION_API_URL      = os.environ.get("EVOLUTION_API_URL", "")        # ex: https://evo.seudominio.com
+    EVOLUTION_API_KEY      = os.environ.get("EVOLUTION_API_KEY", "")        # API key global da instância
+    EVOLUTION_INSTANCE     = os.environ.get("EVOLUTION_INSTANCE", "")       # nome da instância conectada
 
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 

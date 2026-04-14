@@ -174,6 +174,29 @@
       padding: 20px 8px 8px; text-align: center;
     }
 
+    /* Modal — sheet estilo pagamentos (desliza de baixo no mobile, centraliza no desktop) */
+    .sheet-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,0.5); backdrop-filter: blur(4px);
+      z-index: 300; display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .sheet-overlay.open { opacity: 1; pointer-events: all; }
+    .sheet-panel {
+      background: #fff; border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+      padding: 0 0 28px;
+      transform: translateY(24px); transition: transform 0.25s cubic-bezier(0.4,0,0.2,1);
+    }
+    .sheet-overlay.open .sheet-panel { transform: translateY(0); }
+    @media (min-width: 768px) {
+      .sheet-overlay { align-items: center; }
+      .sheet-panel { border-radius: 24px; margin: 0 16px; max-height: 85vh;
+        transform: scale(0.96); }
+      .sheet-overlay.open .sheet-panel { transform: scale(1); }
+    }
+    .sheet-handle { width: 36px; height: 4px; background: #E2E8F0; border-radius: 2px; margin: 12px auto 0; }
+
     /* Modal de avaliação */
     .modal-overlay {
       position: fixed; inset: 0; z-index: 200;
@@ -411,6 +434,16 @@
               <i data-lucide="activity" class="w-4 h-4"></i>
               Avaliação
             </button>
+            <button class="action-btn border-purple-200 text-purple-700 bg-purple-50 hover:bg-purple-100"
+                    id="btn-copy-link" onclick="copyStudentLink()">
+              <i data-lucide="link" class="w-4 h-4"></i>
+              Link do aluno
+            </button>
+            <button class="action-btn border-red-200 text-red-600 bg-red-50 hover:bg-red-100"
+                    id="btn-cancel-student" onclick="openCancelModal()">
+              <i data-lucide="user-x" class="w-4 h-4"></i>
+              <span id="btn-cancel-label">Inativar aluno</span>
+            </button>
           </div>
         </div>
       </div>
@@ -555,6 +588,39 @@
                 </button>
               </div>
 
+              <!-- Contrato (editável inline) -->
+              <div class="info-card">
+                <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+                  <i data-lucide="file-text" class="w-4 h-4 text-blue-500"></i> Contrato
+                </h3>
+                <div class="space-y-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Mensalidade (R$)</label>
+                    <input type="number" id="field-monthly-fee" min="0" step="0.01"
+                      class="editable-field border border-gray-100" placeholder="0,00" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Dia de vencimento</label>
+                    <input type="number" id="field-payment-day" min="1" max="28"
+                      class="editable-field border border-gray-100" placeholder="1 – 28" />
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Modalidade</label>
+                    <select id="field-modality" class="editable-field border border-gray-100">
+                      <option value="presencial">Presencial</option>
+                      <option value="online">Online</option>
+                      <option value="hibrido">Híbrido</option>
+                    </select>
+                  </div>
+                </div>
+                <button onclick="saveContractData()"
+                  class="mt-4 w-full py-2.5 bg-green-500 hover:bg-green-600 text-white
+                         rounded-xl text-sm font-semibold transition-colors flex items-center
+                         justify-center gap-2" id="save-contract-btn">
+                  <i data-lucide="save" class="w-4 h-4"></i> Salvar contrato
+                </button>
+              </div>
+
               <!-- Link de acesso -->
               <div class="info-card lg:col-span-2">
                 <h3 class="text-sm font-bold text-gray-700 mb-3 flex items-center gap-2">
@@ -604,6 +670,17 @@
 
           <!-- ABA 3: Evolução -->
           <div class="tab-content" id="tab-progress">
+
+            <!-- Solicitações de avaliação enviadas pelo aluno -->
+            <div id="assessment-requests-section" style="display:none" class="mb-5">
+              <div class="flex items-center gap-2 mb-3">
+                <i data-lucide="inbox" class="w-4 h-4 text-orange-500"></i>
+                <h3 class="font-bold text-gray-800 text-sm">Solicitações do aluno</h3>
+                <span id="req-count-badge"
+                  class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-0.5 rounded-full"></span>
+              </div>
+              <div id="assessment-requests-list" class="space-y-3"></div>
+            </div>
 
             <!-- Cabeçalho: resumo + botão nova avaliação -->
             <div class="flex items-start justify-between gap-4 mb-5 flex-wrap">
@@ -829,6 +906,37 @@
             </div>
           </div>
 
+          <!-- ── Modal de cancelamento de aluno ── -->
+          <div id="cancel-modal" class="modal-overlay" style="display:none">
+            <div class="modal-box" style="max-width:420px">
+              <div class="modal-header">
+                <div class="modal-title" id="cancel-modal-title">Inativar aluno</div>
+                <button class="modal-close" onclick="closeCancelModal()">
+                  <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+              </div>
+              <div class="p-6 space-y-4">
+                <div class="flex items-start gap-3 p-4 bg-red-50 rounded-xl border border-red-100">
+                  <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"></i>
+                  <p class="text-sm text-red-700" id="cancel-modal-msg"></p>
+                </div>
+                <p class="text-sm text-gray-500">
+                  O histórico de treinos, avaliações e cobranças será mantido. O aluno não receberá mais mensagens de cobrança.
+                </p>
+              </div>
+              <div class="modal-footer">
+                <button onclick="closeCancelModal()"
+                  class="px-5 py-2.5 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors">
+                  Voltar
+                </button>
+                <button id="cancel-confirm-btn" onclick="confirmCancelStudent()"
+                  class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-500 hover:bg-red-600 text-white transition-colors">
+                  Confirmar cancelamento
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- ── Modal de comparação de fotos ── -->
           <div id="compare-modal" class="compare-modal-overlay" style="display:none">
             <button onclick="closeCompareModal()"
@@ -874,6 +982,58 @@
                 </thead>
                 <tbody id="delta-tbody"></tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- ── Modal de confirmação de exclusão de ficha de treino ── -->
+          <div id="delete-workout-sheet" class="sheet-overlay">
+            <div class="sheet-panel">
+              <div class="sheet-handle"></div>
+              <div class="px-6 pt-4 pb-2 flex items-center justify-between">
+                <h2 class="text-base font-bold text-gray-900">Excluir ficha</h2>
+                <button id="close-delete-workout-sheet"
+                  class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+                  <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+                </button>
+              </div>
+              <div class="px-6 pt-1 pb-4">
+                <div class="flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-100 mb-4">
+                  <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"></i>
+                  <p class="text-sm text-red-700" id="delete-workout-msg">
+                    Excluir esta ficha? Esta ação não pode ser desfeita.
+                  </p>
+                </div>
+                <button id="btn-confirm-delete-workout"
+                  class="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm transition-colors">
+                  Excluir ficha
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Modal de confirmação de exclusão de avaliação ── -->
+          <div id="delete-assessment-sheet" class="sheet-overlay">
+            <div class="sheet-panel">
+              <div class="sheet-handle"></div>
+              <div class="px-6 pt-4 pb-2 flex items-center justify-between">
+                <h2 class="text-base font-bold text-gray-900">Excluir avaliação</h2>
+                <button id="close-delete-assessment-sheet"
+                  class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+                  <i data-lucide="x" class="w-4 h-4 text-gray-600"></i>
+                </button>
+              </div>
+              <div class="px-6 pt-1 pb-4">
+                <div class="flex items-start gap-3 p-3 bg-red-50 rounded-xl border border-red-100 mb-4">
+                  <i data-lucide="alert-triangle" class="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"></i>
+                  <p class="text-sm text-red-700" id="delete-assessment-msg">
+                    Excluir esta avaliação? Esta ação não pode ser desfeita.
+                  </p>
+                </div>
+                <button id="btn-confirm-delete-assessment"
+                  class="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-semibold text-sm transition-colors">
+                  Excluir avaliação
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1091,7 +1251,7 @@
               <i data-lucide="pencil" class="w-4 h-4"></i>
             </a>
             <button onclick="deleteWorkout('${w.id}', '${escHtml(w.title).replace(/'/g, "\\'")}', this.closest('.workout-card'))"
-                    class="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    class="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-400 transition-colors border border-red-100"
                     title="Excluir ficha">
               <i data-lucide="trash-2" class="w-4 h-4"></i>
             </button>
@@ -1104,30 +1264,57 @@
     }
 
     // --- Excluir ficha de treino ---
-    async function deleteWorkout(workoutId, title, cardEl) {
-      if (!confirm(`Deseja excluir a ficha "${title}"?\nEsta ação não pode ser desfeita.`)) return;
+    let _pendingDeleteWorkoutId  = null;
+    let _pendingDeleteWorkoutCard = null;
+
+    function deleteWorkout(workoutId, title, cardEl) {
+      document.getElementById('delete-workout-msg').textContent =
+        `Excluir a ficha "${title}"? Esta ação não pode ser desfeita.`;
+      _pendingDeleteWorkoutId   = workoutId;
+      _pendingDeleteWorkoutCard = cardEl;
+      document.getElementById('delete-workout-sheet').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      lucide.createIcons();
+    }
+
+    function closeDeleteWorkoutSheet() {
+      document.getElementById('delete-workout-sheet').classList.remove('open');
+      document.body.style.overflow = '';
+      _pendingDeleteWorkoutId   = null;
+      _pendingDeleteWorkoutCard = null;
+    }
+
+    document.getElementById('close-delete-workout-sheet').addEventListener('click', closeDeleteWorkoutSheet);
+    document.getElementById('delete-workout-sheet').addEventListener('click', function(e) {
+      if (e.target === this) closeDeleteWorkoutSheet();
+    });
+
+    document.getElementById('btn-confirm-delete-workout').addEventListener('click', async function () {
+      if (!_pendingDeleteWorkoutId) return;
+      const id   = _pendingDeleteWorkoutId;
+      const card = _pendingDeleteWorkoutCard;
+      this.disabled = true; this.textContent = 'Excluindo…';
 
       try {
-        const result = await Api.del(`/api/workouts/${workoutId}`);
-        if (!result.success) {
+        const result = await Api.del(`/api/workouts/${id}`);
+        if (result.success) {
+          closeDeleteWorkoutSheet();
+          card?.remove();
+          const list = document.getElementById('workouts-list');
+          if (!list.querySelector('.workout-card')) {
+            list.classList.add('hidden');
+            document.getElementById('workouts-empty').classList.remove('hidden');
+          }
+          Toast.success('Ficha excluída com sucesso.');
+        } else {
           Toast.error(result.message || 'Erro ao excluir a ficha.');
-          return;
         }
-        // Remove o card do DOM sem recarregar a lista
-        cardEl.remove();
-
-        // Exibe o empty state se não restar nenhuma ficha
-        const list = document.getElementById('workouts-list');
-        if (!list.querySelector('.workout-card')) {
-          list.classList.add('hidden');
-          document.getElementById('workouts-empty').classList.remove('hidden');
-        }
-
-        Toast.success('Ficha excluída com sucesso.');
       } catch (err) {
         Toast.error('Erro de conexão ao excluir a ficha.');
       }
-    }
+
+      this.disabled = false; this.textContent = 'Excluir ficha';
+    });
 
     // --- Render header ---
     function renderHeader(s) {
@@ -1170,6 +1357,25 @@
 
       // Título da página
       document.title = `${s.name} — FitFlow Pro`;
+
+      // Botão inativar — ajusta label e visual conforme status
+      const cancelBtn   = document.getElementById('btn-cancel-student');
+      const cancelLabel = document.getElementById('btn-cancel-label');
+      const iconName    = s.status === 'inactive' ? 'user-check' : 'user-x';
+      if (s.status === 'inactive') {
+        cancelLabel.textContent = 'Reativar aluno';
+        cancelBtn.className = 'action-btn border-green-200 text-green-700 bg-green-50 hover:bg-green-100';
+      } else {
+        cancelLabel.textContent = 'Inativar aluno';
+        cancelBtn.className = 'action-btn border-red-200 text-red-600 bg-red-50 hover:bg-red-100';
+      }
+      // Substitui o ícone (pode ser <i> ou <svg> após lucide.createIcons)
+      const existingIcon = cancelBtn.querySelector('svg, i');
+      const newIcon = document.createElement('i');
+      newIcon.setAttribute('data-lucide', iconName);
+      newIcon.className = 'w-4 h-4';
+      if (existingIcon) existingIcon.replaceWith(newIcon); else cancelBtn.prepend(newIcon);
+      lucide.createIcons();
     }
 
     // --- Render engagement ---
@@ -1291,6 +1497,11 @@
       document.getElementById('field-health-notes').value   = s.health_notes   || '';
       document.getElementById('field-internal-notes').value = s.internal_notes || '';
 
+      // Contrato
+      document.getElementById('field-monthly-fee').value  = s.monthly_fee  != null ? Number(s.monthly_fee).toFixed(2) : '';
+      document.getElementById('field-payment-day').value  = s.payment_day  != null ? s.payment_day : '';
+      document.getElementById('field-modality').value     = s.modality || 'presencial';
+
       // Link de acesso
       const accessUrl = s.access_url || `${window.API_BASE_URL}/api/students/public/${s.access_token}`;
       document.getElementById('access-link-display').textContent = accessUrl;
@@ -1338,7 +1549,118 @@
       }
     }
 
-    // --- Copiar link ---
+    // --- Salvar contrato ---
+    async function saveContractData() {
+      const btn = document.getElementById('save-contract-btn');
+      btn.disabled = true; btn.textContent = 'Salvando...';
+
+      const feeRaw       = document.getElementById('field-monthly-fee').value;
+      const payDayRaw    = document.getElementById('field-payment-day').value;
+      const modality     = document.getElementById('field-modality').value;
+
+      const payload = {
+        monthly_fee:  feeRaw     !== '' ? parseFloat(feeRaw)   : null,
+        payment_day:  payDayRaw  !== '' ? parseInt(payDayRaw)  : null,
+        modality:     modality   || null,
+      };
+
+      const result = await Api.patch(`/api/students/${studentId}`, payload);
+      btn.disabled = false;
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar contrato';
+
+      if (result.success) {
+        studentData = { ...studentData, ...result.data.student };
+        // Atualiza também o resumo lateral
+        renderContractInfo(studentData);
+        Toast.success('Contrato atualizado!');
+      } else {
+        Toast.error(result.message || 'Erro ao salvar contrato.');
+      }
+    }
+
+    // --- Inativar / Reativar aluno ---
+    function openCancelModal() {
+      const isInactive = studentData?.status === 'inactive';
+      document.getElementById('cancel-modal-title').textContent =
+        isInactive ? 'Reativar aluno' : 'Inativar aluno';
+      document.getElementById('cancel-modal-msg').textContent = isInactive
+        ? `Deseja reativar ${studentData.name}? Ele voltará a receber lembretes de cobrança.`
+        : `Deseja inativar ${studentData.name}? O aluno não receberá mais mensagens de cobrança.`;
+      document.getElementById('cancel-confirm-btn').textContent =
+        isInactive ? 'Confirmar reativação' : 'Confirmar inativação';
+      document.getElementById('cancel-confirm-btn').className = isInactive
+        ? 'px-5 py-2.5 rounded-xl text-sm font-semibold bg-green-500 hover:bg-green-600 text-white transition-colors'
+        : 'px-5 py-2.5 rounded-xl text-sm font-semibold bg-red-500 hover:bg-red-600 text-white transition-colors';
+      document.getElementById('cancel-modal').style.display = 'flex';
+    }
+
+    function closeCancelModal() {
+      document.getElementById('cancel-modal').style.display = 'none';
+    }
+
+    async function confirmCancelStudent() {
+      const btn        = document.getElementById('cancel-confirm-btn');
+      const isInactive = studentData?.status === 'inactive';
+      const newStatus  = isInactive ? 'active' : 'inactive';
+
+      btn.disabled = true; btn.textContent = 'Salvando…';
+
+      const res = await Api.patch(`/api/students/${studentId}`, { status: newStatus });
+      btn.disabled = false;
+
+      if (res.success) {
+        studentData = { ...studentData, status: newStatus };
+        renderHeader(studentData);
+        closeCancelModal();
+        Toast.success(isInactive ? 'Aluno reativado com sucesso!' : 'Aluno inativado.');
+      } else {
+        Toast.error(res.message || 'Erro ao atualizar status.');
+        btn.textContent = isInactive ? 'Confirmar reativação' : 'Confirmar inativação';
+      }
+    }
+
+    // --- Copiar link (botão de atalho no header) ---
+    function copyStudentLink() {
+      const url = studentData?.access_url ||
+        `${window.API_BASE_URL}/api/students/public/${studentData?.access_token}`;
+      if (!url) { Toast.warning('Link de acesso não disponível.'); return; }
+
+      const btn = document.getElementById('btn-copy-link');
+
+      function onCopied() {
+        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> Copiado!';
+        btn.classList.replace('border-purple-200', 'border-green-300');
+        btn.classList.replace('text-purple-700', 'text-green-700');
+        btn.classList.replace('bg-purple-50', 'bg-green-50');
+        btn.classList.replace('hover:bg-purple-100', 'hover:bg-green-100');
+        Toast.success('Link copiado!');
+        setTimeout(() => {
+          btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Link do aluno';
+          btn.classList.replace('border-green-300', 'border-purple-200');
+          btn.classList.replace('text-green-700', 'text-purple-700');
+          btn.classList.replace('bg-green-50', 'bg-purple-50');
+          btn.classList.replace('hover:bg-green-100', 'hover:bg-purple-100');
+        }, 2000);
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(onCopied).catch(() => {
+          Toast.error('Não foi possível copiar o link.');
+        });
+      } else {
+        // Fallback para HTTP
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); onCopied(); }
+        catch { Toast.error('Não foi possível copiar o link.'); }
+        document.body.removeChild(ta);
+      }
+    }
+
+    // --- Copiar link (campo na aba visão geral) ---
     function copyLink() {
       const url = document.getElementById('access-link-display').textContent;
 
@@ -1397,6 +1719,7 @@
       if (id === 'progress' && !progressLoaded) {
         progressLoaded = true;
         loadProgress();
+        loadAssessmentRequests();
       }
     }
 
@@ -1666,6 +1989,99 @@
     }
 
     // ---------------------------------------------------------------- #
+    //  Solicitações de avaliação enviadas pelo aluno                   #
+    // ---------------------------------------------------------------- #
+
+    async function loadAssessmentRequests() {
+      if (!studentId) return;
+      try {
+        const res = await Api.get('/api/assessments/requests', { student_id: studentId, status: 'pending' });
+        if (!res.success) return;
+        const requests = res.data?.requests || [];
+        const section = document.getElementById('assessment-requests-section');
+        if (!requests.length) { section.style.display = 'none'; return; }
+        section.style.display = 'block';
+        document.getElementById('req-count-badge').textContent = requests.length;
+        renderAssessmentRequests(requests);
+        lucide.createIcons();
+      } catch (_) {}
+    }
+
+    function renderAssessmentRequests(requests) {
+      const container = document.getElementById('assessment-requests-list');
+      container.innerHTML = requests.map(req => {
+        const [y, m, d] = (req.date || '').split('-');
+        const dateStr = d ? `${d}/${m}/${y}` : '—';
+        const metrics = [];
+        if (req.weight)    metrics.push(`Peso: ${req.weight} kg`);
+        if (req.height)    metrics.push(`Altura: ${req.height} cm`);
+        if (req.body_fat)  metrics.push(`Gordura: ${req.body_fat}%`);
+        if (req.waist)     metrics.push(`Cintura: ${req.waist} cm`);
+        return `
+          <div class="bg-orange-50 border border-orange-100 rounded-2xl p-4">
+            <div class="flex items-start gap-3 mb-2">
+              <div class="flex-1 min-w-0">
+                <div class="font-semibold text-gray-900 text-sm">Solicitação para ${dateStr}</div>
+                <div class="text-xs text-gray-500 mt-0.5">
+                  ${metrics.length ? metrics.join(' · ') : 'Sem medidas informadas'}
+                </div>
+                ${req.notes ? `<div class="text-xs text-gray-400 mt-1 italic">"${escHtml(req.notes)}"</div>` : ''}
+              </div>
+            </div>
+            <div class="flex gap-2 mt-3">
+              <button onclick="approveAssessmentRequest('${req.id}')"
+                class="flex-1 flex items-center justify-center gap-1.5 py-2 bg-green-500
+                       hover:bg-green-600 text-white rounded-xl text-xs font-semibold transition-colors">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i>
+                Aprovar
+              </button>
+              <button onclick="rejectAssessmentRequest('${req.id}')"
+                class="flex-1 flex items-center justify-center gap-1.5 py-2 border border-red-200
+                       text-red-600 rounded-xl text-xs font-semibold hover:bg-red-50 transition-colors">
+                <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                Rejeitar
+              </button>
+            </div>
+          </div>`;
+      }).join('');
+    }
+
+    async function approveAssessmentRequest(reqId) {
+      try {
+        const res = await Api.post(`/api/assessments/requests/${reqId}/approve`, {});
+        if (res.success) {
+          Toast.success('Avaliação aprovada e registrada com sucesso!');
+          // Recarrega aba de evolução
+          progressLoaded = false;
+          document.getElementById('progress-loading').style.display = 'block';
+          document.getElementById('progress-charts').style.display = 'none';
+          document.getElementById('progress-empty').style.display = 'none';
+          document.getElementById('assessments-timeline').style.display = 'none';
+          document.getElementById('progress-summary').style.display = 'none';
+          loadProgress();
+          loadAssessmentRequests();
+        } else {
+          Toast.error(res.message || 'Erro ao aprovar solicitação.');
+        }
+      } catch (_) { Toast.error('Erro de conexão.'); }
+    }
+
+    async function rejectAssessmentRequest(reqId) {
+      // Usa o sheet de rejeição inline em vez de prompt()
+      const reason = window.prompt('Motivo da rejeição (opcional):');
+      if (reason === null) return; // usuário cancelou o prompt
+      try {
+        const res = await Api.post(`/api/assessments/requests/${reqId}/reject`, { reason: reason.trim() });
+        if (res.success) {
+          Toast.success('Solicitação rejeitada.');
+          loadAssessmentRequests();
+        } else {
+          Toast.error(res.message || 'Erro ao rejeitar solicitação.');
+        }
+      } catch (_) { Toast.error('Erro de conexão.'); }
+    }
+
+    // ---------------------------------------------------------------- #
     //  Modal de avaliação                                               #
     // ---------------------------------------------------------------- #
 
@@ -1843,17 +2259,45 @@
       }
     }
 
-    // --- Excluir avaliação ---
-    async function deleteAssessment(id) {
-      if (!confirm('Excluir esta avaliação? Essa ação não pode ser desfeita.')) return;
+    // --- Excluir avaliação (sheet modal) ---
+    let _pendingDeleteAssessmentId = null;
+
+    function deleteAssessment(id) {
+      const a = allAssessments.find(x => x.id === id);
+      const dateLabel = a ? formatDate(a.date) : '';
+      document.getElementById('delete-assessment-msg').textContent =
+        `Excluir a avaliação de ${dateLabel || 'data desconhecida'}? Esta ação não pode ser desfeita.`;
+      _pendingDeleteAssessmentId = id;
+      document.getElementById('delete-assessment-sheet').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      lucide.createIcons();
+    }
+
+    function closeDeleteAssessmentSheet() {
+      document.getElementById('delete-assessment-sheet').classList.remove('open');
+      document.body.style.overflow = '';
+      _pendingDeleteAssessmentId = null;
+    }
+
+    document.getElementById('close-delete-assessment-sheet').addEventListener('click', closeDeleteAssessmentSheet);
+    document.getElementById('delete-assessment-sheet').addEventListener('click', function(e) {
+      if (e.target === this) closeDeleteAssessmentSheet();
+    });
+
+    document.getElementById('btn-confirm-delete-assessment').addEventListener('click', async function () {
+      if (!_pendingDeleteAssessmentId) return;
+      const id = _pendingDeleteAssessmentId;
+      this.disabled = true; this.textContent = 'Excluindo…';
       const result = await Api.del(`/api/assessments/${id}`);
+      this.disabled = false; this.textContent = 'Excluir avaliação';
       if (result.success) {
+        closeDeleteAssessmentSheet();
         Toast.success('Avaliação excluída.');
         loadProgress();
       } else {
         Toast.error(result.message || 'Erro ao excluir.');
       }
-    }
+    });
 
     // ---------------------------------------------------------------- #
     //  Upload de fotos                                                  #
@@ -2343,7 +2787,11 @@
       if (tabId === 'messages') {
         if (!chatLoaded) {
           chatLoaded = true;
-          loadChat();
+          loadChat(); // loadChat já marca como lidas e zera o badge
+        } else {
+          // Aba já carregada: limpa badge e marca como lidas imediatamente
+          setUnreadBadge(0);
+          Api.patch(`/api/messages/${studentId}/read`, {}).catch(() => {});
         }
         startChatPolling();
       } else {

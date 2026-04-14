@@ -4,6 +4,12 @@ Rotas para atualizar perfil, disponibilidade e preferências de agendamento.
 Todas as rotas exigem trainer autenticado.
 """
 from datetime import datetime, timezone, timedelta
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo  # Python < 3.9
+
+BRASILIA = ZoneInfo("America/Sao_Paulo")
 
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
@@ -161,22 +167,27 @@ def update_availability(**kwargs):
 #  PATCH /api/trainer/profile                                         #
 # ------------------------------------------------------------------ #
 
-@trainer_bp.route("/profile", methods=["PATCH"])
+@trainer_bp.route("/profile", methods=["GET", "PATCH"])
 @jwt_required()
 @trainer_required
 def update_profile(**kwargs):
     """
-    Atualiza perfil público do trainer.
-    Campos atualizáveis: name, phone, bio, cref, avatar_url,
+    GET  — retorna o perfil completo do trainer autenticado.
+    PATCH — atualiza campos do perfil.
+    Campos atualizáveis: name, phone, bio, cref, avatar_url, pix_key,
                          session_duration, cancellation_hours_policy, specializations.
     """
     trainer = kwargs["current_trainer"]
+
+    if request.method == "GET":
+        return _success(data={"trainer": trainer.to_dict()})
+
     data = request.get_json(silent=True)
     if not data:
         return _error("Corpo da requisição inválido.", 400)
 
-    # Campos de texto simples
-    for field in ("name", "phone", "bio", "cref", "avatar_url"):
+    # Campos de texto simples (incluindo pix_key)
+    for field in ("name", "phone", "bio", "cref", "avatar_url", "pix_key"):
         if field in data:
             value = (data[field] or "").strip() or None
             setattr(trainer, field, value)
@@ -251,10 +262,14 @@ def get_dashboard(**kwargs):
     from app.models import Student, Payment, Appointment, Workout, Message
 
     trainer = kwargs["current_trainer"]
-    # SQLite armazena datetimes sem timezone; usamos naive UTC para comparações com o banco
+    # "Hoje" calculado no fuso de Brasília (UTC-3), depois convertido para UTC naive
+    # porque o SQLite armazena datetimes sem timezone.
+    now_br = datetime.now(BRASILIA)
+    today_start_br = now_br.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end_br   = now_br.replace(hour=23, minute=59, second=59, microsecond=999999)
+    today_start = today_start_br.astimezone(timezone.utc).replace(tzinfo=None)
+    today_end   = today_end_br.astimezone(timezone.utc).replace(tzinfo=None)
     now = datetime.utcnow()
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    today_end   = now.replace(hour=23, minute=59, second=59, microsecond=999999)
     first_of_month   = today_start.replace(day=1)
     prev_month_start = _subtract_months(first_of_month, 1)
     seven_days_ago   = now - timedelta(days=7)

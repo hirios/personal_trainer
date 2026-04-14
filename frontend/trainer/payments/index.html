@@ -155,26 +155,18 @@
       </div>
     </div>
 
-    <!-- Botão gerar cobranças -->
-    <div id="bulk-section" class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-5 mb-6 text-white">
+    <!-- Envio de cobrança por WhatsApp -->
+    <div class="bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-5 mb-6 text-white">
       <div class="flex flex-col sm:flex-row sm:items-center gap-4">
         <div class="flex-1">
-          <h3 class="font-bold text-lg">Cobranças do mês</h3>
-          <p id="bulk-preview-text" class="text-green-100 text-sm mt-0.5">Carregando…</p>
+          <h3 class="font-bold text-lg">Cobranças por WhatsApp</h3>
+          <p class="text-green-100 text-sm mt-0.5">Envia lembrete com chave PIX para todos os alunos inadimplentes.</p>
         </div>
-        <button id="btn-bulk-generate"
-          class="flex items-center gap-2 px-5 py-2.5 bg-white text-green-700 rounded-xl font-semibold text-sm hover:bg-green-50 transition-colors flex-shrink-0 disabled:opacity-50"
-          disabled>
-          <i data-lucide="zap" class="w-4 h-4"></i>
-          Gerar cobranças
+        <button id="btn-notify-whatsapp" onclick="notifyWhatsApp()"
+          class="flex items-center gap-2 px-5 py-2.5 bg-white text-green-700 rounded-xl font-semibold text-sm hover:bg-green-50 transition-colors flex-shrink-0 disabled:opacity-50">
+          <i data-lucide="message-circle" class="w-4 h-4"></i>
+          Enviar cobranças
         </button>
-      </div>
-      <!-- Barra de progresso (oculta inicialmente) -->
-      <div id="bulk-progress" class="hidden mt-4">
-        <div class="bg-green-400 rounded-full h-1.5 overflow-hidden">
-          <div id="bulk-progress-bar" class="bg-white h-full rounded-full transition-all duration-300" style="width:0%"></div>
-        </div>
-        <p id="bulk-progress-text" class="text-green-100 text-xs mt-1.5">Gerando cobranças…</p>
       </div>
     </div>
 
@@ -548,74 +540,29 @@
   }
 
   // ----------------------------------------------------------------
-  // Preview bulk
   // ----------------------------------------------------------------
-  async function loadBulkPreview() {
-    const text = document.getElementById('bulk-preview-text');
-    const btn  = document.getElementById('btn-bulk-generate');
-    try {
-      const now = new Date();
-      const month = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-      const res = await Api.get(`/api/payments/preview-bulk?month=${month}`);
-      if (res.success) {
-        const d = res.data;
-        if (d.pending_count === 0) {
-          text.textContent = `Todos os ${d.total_students} alunos já têm cobrança para ${d.month_label}.`;
-          btn.disabled = true;
-        } else {
-          text.textContent = `${d.pending_count} aluno(s) sem cobrança para ${d.month_label}.`;
-          btn.disabled = false;
-        }
-        btn.dataset.month = month;
-      }
-    } catch { text.textContent = 'Não foi possível verificar.'; }
-  }
-
+  // Enviar cobranças por WhatsApp
   // ----------------------------------------------------------------
-  // Gerar cobranças em lote
-  // ----------------------------------------------------------------
-  document.getElementById('btn-bulk-generate').addEventListener('click', async () => {
-    const btn      = document.getElementById('btn-bulk-generate');
-    const progress = document.getElementById('bulk-progress');
-    const bar      = document.getElementById('bulk-progress-bar');
-    const pText    = document.getElementById('bulk-progress-text');
-    const month    = btn.dataset.month;
-
+  async function notifyWhatsApp() {
+    const btn = document.getElementById('btn-notify-whatsapp');
     btn.disabled = true;
-    progress.classList.remove('hidden');
-    pText.textContent = 'Gerando cobranças…';
-
-    // Anima barra (simulada — o endpoint é síncrono)
-    let pct = 0;
-    const ticker = setInterval(() => {
-      pct = Math.min(pct + 8, 85);
-      bar.style.width = pct + '%';
-    }, 200);
+    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg> Enviando…';
 
     try {
-      const res = await Api.post('/api/payments/bulk', { month });
-      clearInterval(ticker);
-      bar.style.width = '100%';
-
+      const res = await Api.post('/api/payments/notify', {});
       if (res.success) {
-        const d = res.data;
-        pText.textContent = `${d.created} cobrança(s) gerada(s). ${d.skipped} pulada(s).${d.errors.length ? ` ${d.errors.length} erro(s).` : ''}`;
         Toast.success(res.message);
-        await loadDashboard();
-        await loadPayments();
-        await loadBulkPreview();
       } else {
-        pText.textContent = res.message || 'Erro ao gerar cobranças.';
-        Toast.error(res.message);
+        Toast.warning(res.message || 'Nenhuma mensagem enviada.');
       }
     } catch {
-      clearInterval(ticker);
-      pText.textContent = 'Erro de conexão.';
+      Toast.error('Erro de conexão.');
     } finally {
       btn.disabled = false;
-      setTimeout(() => { bar.style.width = '0%'; progress.classList.add('hidden'); }, 3000);
+      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Enviar cobranças';
+      lucide.createIcons();
     }
-  });
+  }
 
   // ----------------------------------------------------------------
   // Lista de cobranças
@@ -999,7 +946,8 @@
   document.getElementById('month-filter').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
   state.currentMonth = document.getElementById('month-filter').value;
 
-  Promise.all([loadDashboard(), loadBulkPreview(), loadStudents(), loadPayments()]);
+  // loadDashboard já chama generate_monthly_charges no backend antes de calcular métricas
+  Promise.all([loadDashboard(), loadStudents(), loadPayments()]);
 </script>
 </body>
 </html>

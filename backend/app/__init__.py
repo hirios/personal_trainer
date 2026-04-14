@@ -38,6 +38,11 @@ def create_app(config_name: str = "default") -> Flask:
         with app.app_context():
             db.create_all()
 
+    # --- Inicia o scheduler de tarefas (não roda em testes) ---
+    if not app.config.get("TESTING"):
+        from app.services.scheduler_service import init_scheduler
+        init_scheduler(app)
+
     return app
 
 

@@ -94,6 +94,59 @@ def upload_assessment_photo(**kwargs):
 
 
 # ------------------------------------------------------------------ #
+#  POST /api/uploads/student-assessment-photo  (público — aluno)     #
+# ------------------------------------------------------------------ #
+
+@uploads_bp.route("/student-assessment-photo", methods=["POST"])
+def upload_student_assessment_photo():
+    """
+    Endpoint público — aluno envia foto de avaliação.
+    Usa access_token no form data em vez de JWT.
+    Salva em uploads/assessments/<trainer_id>/student/
+    """
+    from app.models.student import Student
+
+    access_token = (request.form.get("access_token") or "").strip()
+    if not access_token:
+        return _err("access_token é obrigatório.", 422)
+
+    student = Student.query.filter_by(access_token=access_token).first()
+    if not student or not student.is_active:
+        return _err("Link de acesso inválido ou expirado.", 404)
+
+    if "photo" not in request.files:
+        return _err("Nenhum arquivo enviado. Use o campo 'photo'.")
+
+    file = request.files["photo"]
+    if not file.filename:
+        return _err("Nome de arquivo inválido.")
+
+    _, ext = os.path.splitext(file.filename.lower())
+    if ext not in ALLOWED_EXT:
+        return _err("Tipo de arquivo não permitido. Use: jpg, png ou webp.")
+    if file.mimetype not in ALLOWED_MIME:
+        return _err("Tipo MIME não permitido.")
+
+    file.seek(0, 2)
+    size = file.tell()
+    file.seek(0)
+    if size > MAX_SIZE_BYTES:
+        return _err(f"Arquivo muito grande. Máximo: {MAX_SIZE_MB}MB.")
+
+    safe_name = f"{uuid.uuid4()}{ext}"
+    subdir    = os.path.join("assessments", student.trainer_id, "student")
+    full_dir  = os.path.join(_uploads_root(), subdir)
+    os.makedirs(full_dir, exist_ok=True)
+    file.save(os.path.join(full_dir, safe_name))
+
+    return _ok(
+        data={"url": f"assessments/{student.trainer_id}/student/{safe_name}"},
+        message="Foto enviada com sucesso.",
+        status=201,
+    )
+
+
+# ------------------------------------------------------------------ #
 #  GET /api/uploads/files/<path>                                     #
 # ------------------------------------------------------------------ #
 

@@ -1261,18 +1261,19 @@ function openFormModal(prefillDate = null) {
   document.getElementById('form-modal-title').textContent = 'Novo Agendamento';
   document.getElementById('btn-save-appt').textContent = 'Salvar agendamento';
 
+  // Retorna a data local no formato YYYY-MM-DD (sem conversão UTC)
+  const localDateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
   // Pré-preenche data/hora se fornecido
   if (prefillDate) {
-    const dateStr = prefillDate.toISOString().slice(0, 10);
-    const timeStr = `${String(prefillDate.getHours()).padStart(2,'0')}:${String(prefillDate.getMinutes()).padStart(2,'0')}`;
-    document.getElementById('form-date').value = dateStr;
-    document.getElementById('form-time').value = timeStr;
+    document.getElementById('form-date').value = localDateStr(prefillDate);
+    document.getElementById('form-time').value = `${String(prefillDate.getHours()).padStart(2,'0')}:${String(prefillDate.getMinutes()).padStart(2,'0')}`;
   } else {
     // Default: hoje, próxima hora cheia
     const now = new Date();
     now.setMinutes(0, 0, 0);
     now.setHours(now.getHours() + 1);
-    document.getElementById('form-date').value = now.toISOString().slice(0, 10);
+    document.getElementById('form-date').value = localDateStr(now);
     document.getElementById('form-time').value = `${String(now.getHours()).padStart(2,'0')}:00`;
   }
 
@@ -1372,13 +1373,20 @@ document.getElementById('appt-form').addEventListener('submit', async (e) => {
     return;
   }
 
-  const startsAt = new Date(`${dateVal}T${timeVal}:00`);
-  const endsAt   = new Date(startsAt.getTime() + duration * 60000);
+  // Monta a string de datetime sem conversão de fuso — o backend armazena como hora local
+  const [h, m] = timeVal.split(':').map(Number);
+  const endsMin = h * 60 + m + duration;
+  const endsH   = String(Math.floor(endsMin / 60) % 24).padStart(2, '0');
+  const endsM   = String(endsMin % 60).padStart(2, '0');
+  // Caso a sessão passe da meia-noite, avança um dia
+  const endsDate = endsMin >= 24 * 60
+    ? new Date(new Date(`${dateVal}T00:00:00`).getTime() + 86400000).toISOString().slice(0, 10)
+    : dateVal;
 
   const payload = {
     student_id:  studentId || null,
-    starts_at:   startsAt.toISOString(),
-    ends_at:     endsAt.toISOString(),
+    starts_at:   `${dateVal}T${timeVal}:00`,
+    ends_at:     `${endsDate}T${endsH}:${endsM}:00`,
     location:    location || null,
     notes:       notes || null,
   };

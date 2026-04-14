@@ -63,6 +63,13 @@ class Trainer(User):
         comment="Horas mínimas de antecedência para cancelamento sem custo",
     )
 
+    # --- Configuração financeira ---
+    pix_key = db.Column(
+        db.String(150),
+        nullable=True,
+        comment="Chave PIX do trainer para recebimento de mensalidades",
+    )
+
     # --- Disponibilidade semanal ---
     # Formato JSON: {"1": [{"start":"08:00","end":"12:00"}], ..., "7": [...]}
     # Chaves = isoweekday (1=seg, 7=dom). Valor = lista de blocos de horário.
@@ -110,6 +117,7 @@ class Trainer(User):
                 "session_duration": self.session_duration,
                 "cancellation_hours_policy": self.cancellation_hours_policy,
                 "availability": self.availability,
+                "pix_key": self.pix_key,
             }
         )
         return data

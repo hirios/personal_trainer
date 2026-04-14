@@ -197,6 +197,186 @@
       border-radius: 50%; animation: spin 0.7s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+    #btn-refresh-msgs:hover { background: #DCFCE7 !important; }
+    #btn-refresh-msgs:active { transform: scale(0.92); }
+
+    /* ── Formulário de avaliação — sheet overlay full-height ── */
+    #evo-form-overlay {
+      position: fixed; inset: 0; z-index: 200;
+      background: rgba(15,23,42,0.55); backdrop-filter: blur(4px);
+      display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    #evo-form-overlay.open { opacity: 1; pointer-events: all; }
+    .evo-form-sheet {
+      background: #fff; border-radius: 24px 24px 0 0;
+      width: 100%; max-width: 520px; height: 92dvh;
+      display: flex; flex-direction: column;
+      transform: translateY(32px);
+      transition: transform 0.28s cubic-bezier(0.4,0,0.2,1);
+    }
+    #evo-form-overlay.open .evo-form-sheet { transform: translateY(0); }
+    .evo-form-handle {
+      width: 36px; height: 4px; background: var(--gray-200);
+      border-radius: 2px; margin: 12px auto 0; flex-shrink: 0;
+    }
+    .evo-form-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px 12px; flex-shrink: 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .evo-form-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 16px; font-weight: 700; color: var(--gray-900);
+    }
+    .evo-form-close {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: var(--gray-100); border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; color: var(--gray-600); line-height: 1;
+    }
+    .evo-form-body {
+      flex: 1; overflow-y: auto; padding: 16px 20px;
+      padding-bottom: max(24px, env(safe-area-inset-bottom, 24px));
+    }
+    .evo-section-title {
+      font-size: 10px; font-weight: 700; color: var(--gray-400);
+      text-transform: uppercase; letter-spacing: 0.07em;
+      margin: 16px 0 10px; padding-bottom: 6px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    .evo-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .evo-field label {
+      display: block; font-size: 11px; font-weight: 700;
+      color: var(--gray-400); text-transform: uppercase;
+      letter-spacing: 0.05em; margin-bottom: 4px;
+    }
+    .evo-input {
+      width: 100%; padding: 10px 12px; border-radius: 12px;
+      border: 1.5px solid var(--gray-200); font-size: 14px;
+      font-family: 'DM Sans', sans-serif; color: var(--gray-900);
+      outline: none; background: var(--gray-50); box-sizing: border-box;
+      transition: border-color 0.15s;
+    }
+    .evo-input:focus { border-color: var(--green); background: #fff;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+    .evo-input[readonly] { color: var(--gray-400); cursor: default; background: var(--gray-100); }
+    textarea.evo-input { resize: none; min-height: 72px; }
+    .evo-col-full { grid-column: 1 / -1; }
+
+    /* Slots de foto no formulário */
+    .evo-photo-grid {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px;
+    }
+    .evo-photo-slot {
+      aspect-ratio: 3/4; border-radius: 12px; overflow: hidden;
+      border: 2px dashed var(--gray-200); background: var(--gray-50);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; position: relative; transition: border-color 0.15s;
+    }
+    .evo-photo-slot.has-photo { border-style: solid; border-color: var(--green); }
+    .evo-photo-slot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .evo-photo-slot-ico { font-size: 18px; }
+    .evo-photo-slot-lbl {
+      font-size: 9px; font-weight: 700; color: var(--gray-400);
+      text-transform: uppercase; letter-spacing: 0.04em; margin-top: 4px;
+      position: absolute; bottom: 5px; text-align: center; width: 100%; padding: 0 2px;
+    }
+    .evo-photo-slot.has-photo .evo-photo-slot-lbl {
+      color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+    }
+    .evo-photo-remove {
+      position: absolute; top: 3px; right: 3px; width: 18px; height: 18px;
+      background: rgba(239,68,68,0.9); color: #fff; border: none;
+      border-radius: 50%; cursor: pointer; font-size: 9px;
+      display: flex; align-items: center; justify-content: center; z-index: 2;
+    }
+
+    /* ── Thumbnails de foto na timeline ── */
+    .evo-photo-strip {
+      display: flex; gap: 6px; margin-top: 8px; overflow-x: auto;
+    }
+    .evo-photo-strip img {
+      height: 72px; width: 54px; object-fit: cover; border-radius: 8px;
+      flex-shrink: 0; cursor: pointer; transition: transform 0.15s;
+    }
+    .evo-photo-strip img:active { transform: scale(0.95); }
+
+    /* ── Modal de comparação de avaliações ── */
+    #evo-compare-overlay {
+      position: fixed; inset: 0; z-index: 250;
+      background: #0F172A;
+      display: flex; flex-direction: column;
+      opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    #evo-compare-overlay.open { opacity: 1; pointer-events: all; }
+    .cmp-topbar {
+      background: #1E293B; flex-shrink: 0;
+      padding: 12px 16px;
+      padding-top: max(12px, env(safe-area-inset-top, 12px));
+    }
+    .cmp-row { display: flex; align-items: center; gap: 8px; }
+    .cmp-sel {
+      flex: 1; background: #334155; color: #F1F5F9; border: none;
+      border-radius: 8px; padding: 7px 10px; font-size: 12px;
+      font-family: 'DM Sans', sans-serif; min-width: 0;
+    }
+    .cmp-vs { color: #64748B; font-size: 12px; font-weight: 700; flex-shrink: 0; }
+    .cmp-close {
+      width: 34px; height: 34px; border-radius: 50%;
+      background: rgba(255,255,255,0.1); color: #fff;
+      border: none; cursor: pointer; font-size: 18px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .cmp-view-row { display: flex; gap: 6px; margin-top: 8px; }
+    .cmp-view-btn {
+      flex: 1; padding: 5px 4px; border-radius: 8px; font-size: 11px; font-weight: 600;
+      border: none; cursor: pointer; background: #334155; color: #94A3B8; transition: 0.15s;
+    }
+    .cmp-view-btn.active { background: #22C55E; color: #fff; }
+    .cmp-img-wrap {
+      flex: 1; position: relative; overflow: hidden; background: #0F172A;
+      display: flex; align-items: center; justify-content: center;
+      user-select: none; -webkit-user-select: none;
+    }
+    .cmp-img-wrap img {
+      position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain;
+    }
+    .cmp-clip {
+      position: absolute; inset: 0; clip-path: inset(0 50% 0 0);
+    }
+    .cmp-clip img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+    .cmp-handle {
+      position: absolute; top: 0; bottom: 0; left: 50%;
+      width: 3px; background: #fff; transform: translateX(-50%);
+      cursor: ew-resize; z-index: 10;
+    }
+    .cmp-grip {
+      position: absolute; top: 50%; width: 36px; height: 36px; border-radius: 50%;
+      background: #fff; transform: translate(-50%, -50%);
+      display: flex; align-items: center; justify-content: center;
+      cursor: ew-resize; z-index: 11; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      user-select: none; -webkit-user-select: none;
+    }
+    .cmp-bottom {
+      background: #1E293B; flex-shrink: 0;
+      max-height: 40vh; overflow-y: auto;
+      padding: 10px 16px;
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 16px));
+    }
+    .cmp-delta-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .cmp-delta-tbl th {
+      color: #64748B; font-weight: 600; font-size: 11px; text-align: left;
+      padding: 4px 6px; border-bottom: 1px solid #334155;
+    }
+    .cmp-delta-tbl td { padding: 5px 6px; color: #CBD5E1; border-bottom: 1px solid #243040; }
+    .cmp-delta-tbl td:first-child { color: #94A3B8; }
+    .cmp-up   { color: #22C55E; font-weight: 700; }
+    .cmp-down { color: #EF4444; font-weight: 700; }
+    .cmp-placeholder {
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+      color: #334155; font-size: 13px;
+    }
 
     /* ── Info do trainer no rodapé ── */
     #trainer-footer {
@@ -399,6 +579,124 @@
         <div id="workouts-list"></div>
       </div>
 
+      <!-- Evolução / avaliações físicas -->
+      <div id="evolution-section" style="display:none;">
+        <div class="section-title">Minha evolução</div>
+        <div id="evolution-summary-banner" style="display:none;
+          background:linear-gradient(135deg,#F0FDF4,#DCFCE7);
+          border:1px solid #BBF7D0;border-radius:16px;
+          padding:14px 18px;font-size:13px;color:#15803D;line-height:1.6;
+          margin-bottom:12px;"></div>
+        <div id="evolution-charts" style="display:none;">
+          <!-- Gráfico de peso -->
+          <div style="background:#fff;border:1px solid #F1F5F9;border-radius:20px;padding:18px;margin-bottom:10px;">
+            <p style="font-size:13px;font-weight:700;color:#0F172A;margin-bottom:10px;">Peso (kg)</p>
+            <div style="position:relative;height:180px;"><canvas id="evo-chart-weight"></canvas></div>
+          </div>
+          <!-- Gráfico de gordura -->
+          <div style="background:#fff;border:1px solid #F1F5F9;border-radius:20px;padding:18px;margin-bottom:10px;" id="evo-bodyfat-card" style="display:none">
+            <p style="font-size:13px;font-weight:700;color:#0F172A;margin-bottom:10px;">Gordura Corporal (%)</p>
+            <div style="position:relative;height:180px;"><canvas id="evo-chart-bodyfat"></canvas></div>
+          </div>
+        </div>
+        <!-- Timeline de avaliações -->
+        <div id="evolution-timeline"></div>
+        <div id="evolution-empty" style="display:none;
+          text-align:center;padding:32px 20px;
+          background:#fff;border:1px solid #F1F5F9;border-radius:20px;margin-bottom:10px;">
+          <p style="font-size:13px;color:#94A3B8;line-height:1.6;">
+            Nenhuma avaliação registrada ainda.
+          </p>
+        </div>
+
+        <!-- Solicitação de avaliação pelo aluno -->
+        <div id="evo-request-section">
+          <!-- Estado: nenhuma solicitação pendente → botão para abrir formulário -->
+          <div id="evo-req-idle">
+            <button id="btn-open-evo-form"
+              style="width:100%;padding:14px;border-radius:16px;
+                     background:linear-gradient(135deg,#22C55E,#15803D);
+                     color:#fff;border:none;font-family:'Plus Jakarta Sans',sans-serif;
+                     font-size:14px;font-weight:700;cursor:pointer;
+                     display:flex;align-items:center;justify-content:center;gap:8px;
+                     box-shadow:0 4px 14px rgba(34,197,94,0.3);transition:opacity 0.15s;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                   fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+              </svg>
+              Enviar minhas medidas para o personal
+            </button>
+          </div>
+
+          <!-- Estado: solicitação pendente → exibe status + botão cancelar -->
+          <div id="evo-req-pending" style="display:none;
+            background:#FFFBEB;border:1px solid #FDE68A;border-radius:16px;padding:16px;">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+              <div style="width:36px;height:36px;background:#FEF3C7;border-radius:10px;
+                          display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                     fill="none" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div>
+                <p style="font-size:13px;font-weight:700;color:#92400E;">Aguardando aprovação</p>
+                <p style="font-size:12px;color:#B45309;" id="evo-req-date-label"></p>
+              </div>
+            </div>
+            <button id="btn-cancel-evo-req"
+              style="width:100%;padding:10px;border-radius:12px;border:1px solid #FDE68A;
+                     background:#fff;color:#B45309;font-size:13px;font-weight:600;cursor:pointer;
+                     transition:background 0.15s;">
+              Cancelar solicitação
+            </button>
+          </div>
+
+          <!-- Estado: aprovada → feedback positivo -->
+          <div id="evo-req-approved" style="display:none;
+            background:#F0FDF4;border:1px solid #BBF7D0;border-radius:16px;padding:16px;
+            display:none;align-items:center;gap:10px;">
+            <div style="width:36px;height:36px;background:#DCFCE7;border-radius:10px;
+                        display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+                   fill="none" stroke="#15803D" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 6 9 17l-5-5"/>
+              </svg>
+            </div>
+            <p style="font-size:13px;font-weight:700;color:#15803D;">Avaliação aprovada pelo personal!</p>
+          </div>
+
+          <!-- Estado: rejeitada → feedback com motivo -->
+          <div id="evo-req-rejected" style="display:none;
+            background:#FFF1F2;border:1px solid #FECDD3;border-radius:16px;padding:16px;">
+            <p style="font-size:13px;font-weight:700;color:#9F1239;margin-bottom:4px;">Solicitação não aprovada</p>
+            <p style="font-size:12px;color:#BE123C;" id="evo-req-rejection-msg"></p>
+            <button id="btn-open-evo-form-2"
+              style="margin-top:10px;width:100%;padding:10px;border-radius:12px;
+                     border:1px solid #FECDD3;background:#fff;color:#9F1239;
+                     font-size:13px;font-weight:600;cursor:pointer;">
+              Enviar nova solicitação
+            </button>
+          </div>
+        </div>
+
+        <!-- Botão Comparar (aparece quando há 2+ avaliações aprovadas) -->
+        <div id="evo-compare-btn-wrap" style="display:none;margin-top:10px;">
+          <button id="btn-compare-evo"
+            style="width:100%;padding:12px;border-radius:14px;
+                   border:1.5px solid #E2E8F0;background:#fff;color:#0F172A;
+                   font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;
+                   cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;
+                   transition:background 0.15s;">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+                 fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/>
+            </svg>
+            Comparar avaliações
+          </button>
+        </div>
+      </div>
+
     </div>
 
   </div>
@@ -432,7 +730,20 @@
     <div class="msg-modal-handle"></div>
     <div class="msg-modal-header">
       <div class="msg-modal-title">Mensagens</div>
-      <button class="msg-modal-close" id="btn-close-msg-modal" aria-label="Fechar">✕</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button id="btn-refresh-msgs"
+          style="background:#F0FDF4;border:none;border-radius:50%;width:32px;height:32px;
+                 display:flex;align-items:center;justify-content:center;cursor:pointer;
+                 color:#15803D;transition:background 0.15s;"
+          aria-label="Atualizar mensagens" title="Carregar novas mensagens">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+               fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+        </button>
+        <button class="msg-modal-close" id="btn-close-msg-modal" aria-label="Fechar">✕</button>
+      </div>
     </div>
 
     <!-- Histórico de mensagens -->
@@ -450,6 +761,140 @@
 </div>
 
 
+<!-- ── Sheet overlay: formulário de avaliação do aluno ── -->
+<div id="evo-form-overlay">
+  <div class="evo-form-sheet">
+    <div class="evo-form-handle"></div>
+    <div class="evo-form-header">
+      <span class="evo-form-title">Minhas medidas</span>
+      <button class="evo-form-close" id="btn-close-evo-form">✕</button>
+    </div>
+    <div class="evo-form-body">
+
+      <!-- Data -->
+      <div class="evo-section-title">Data da avaliação</div>
+      <div class="evo-field">
+        <label>Data *</label>
+        <input type="date" id="evo-req-date" class="evo-input" />
+      </div>
+
+      <!-- Composição corporal -->
+      <div class="evo-section-title">Composição corporal</div>
+      <div class="evo-form-grid">
+        <div class="evo-field">
+          <label>Peso (kg)</label>
+          <input type="number" id="evo-req-weight" class="evo-input" step="0.1" placeholder="75.0" oninput="updateEvoBMI()" />
+        </div>
+        <div class="evo-field">
+          <label>Altura (cm)</label>
+          <input type="number" id="evo-req-height" class="evo-input" step="0.1" placeholder="175" oninput="updateEvoBMI()" />
+        </div>
+        <div class="evo-field">
+          <label>IMC</label>
+          <input type="text" id="evo-req-bmi" class="evo-input" readonly placeholder="—" />
+        </div>
+        <div class="evo-field">
+          <label>% Gordura</label>
+          <input type="number" id="evo-req-bodyfat" class="evo-input" step="0.1" placeholder="22.5" />
+        </div>
+        <div class="evo-field evo-col-full">
+          <label>Massa muscular (kg)</label>
+          <input type="number" id="evo-req-muscle" class="evo-input" step="0.1" placeholder="32.0" />
+        </div>
+      </div>
+
+      <!-- Circunferências -->
+      <div class="evo-section-title">Circunferências (cm)</div>
+      <div class="evo-form-grid">
+        <div class="evo-field"><label>Peito</label><input type="number" id="evo-req-chest"        class="evo-input" step="0.1" placeholder="96" /></div>
+        <div class="evo-field"><label>Cintura</label><input type="number" id="evo-req-waist"       class="evo-input" step="0.1" placeholder="80" /></div>
+        <div class="evo-field"><label>Quadril</label><input type="number" id="evo-req-hip"         class="evo-input" step="0.1" placeholder="95" /></div>
+        <div class="evo-field"><label>Abdômen</label><input type="number" id="evo-req-abdomen"     class="evo-input" step="0.1" placeholder="88" /></div>
+        <div class="evo-field"><label>Braço D</label><input type="number" id="evo-req-right-arm"   class="evo-input" step="0.1" placeholder="36" /></div>
+        <div class="evo-field"><label>Braço E</label><input type="number" id="evo-req-left-arm"    class="evo-input" step="0.1" placeholder="35" /></div>
+        <div class="evo-field"><label>Coxa D</label><input type="number" id="evo-req-right-thigh" class="evo-input" step="0.1" placeholder="55" /></div>
+        <div class="evo-field"><label>Coxa E</label><input type="number" id="evo-req-left-thigh"  class="evo-input" step="0.1" placeholder="54" /></div>
+        <div class="evo-field"><label>Panturrilha D</label><input type="number" id="evo-req-right-calf"  class="evo-input" step="0.1" placeholder="36" /></div>
+        <div class="evo-field"><label>Panturrilha E</label><input type="number" id="evo-req-left-calf"   class="evo-input" step="0.1" placeholder="35" /></div>
+      </div>
+
+      <!-- Fotos -->
+      <div class="evo-section-title">Fotos (opcional)</div>
+      <p style="font-size:12px;color:var(--gray-400);margin-bottom:10px;line-height:1.5;">
+        Envie fotos de frente, costas e lados para acompanhar a evolução visual.
+      </p>
+      <div class="evo-photo-grid" id="evo-photo-grid">
+        <!-- Slots gerados via JS -->
+      </div>
+
+      <!-- Notas -->
+      <div class="evo-section-title">Observações</div>
+      <div class="evo-field evo-col-full">
+        <label>Como você está se sentindo?</label>
+        <textarea id="evo-req-notes" class="evo-input" rows="3"
+          placeholder="Descreva como está se sentindo, dores, progresso..."></textarea>
+      </div>
+
+      <!-- Botão e status -->
+      <div style="margin-top:20px;">
+        <button id="btn-submit-evo-req"
+          style="width:100%;padding:14px;border-radius:14px;background:var(--green);color:#fff;
+                 border:none;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;font-weight:700;
+                 cursor:pointer;transition:background 0.15s;">
+          Enviar para aprovação
+        </button>
+        <p id="evo-req-status" style="font-size:12px;text-align:center;margin-top:8px;min-height:18px;color:var(--gray-400);"></p>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Overlay de comparação de avaliações ── -->
+<div id="evo-compare-overlay">
+  <div class="cmp-topbar">
+    <div class="cmp-row">
+      <select id="cmp-sel-a" class="cmp-sel" onchange="renderCompare()"></select>
+      <span class="cmp-vs">vs</span>
+      <select id="cmp-sel-b" class="cmp-sel" onchange="renderCompare()"></select>
+      <button class="cmp-close" id="btn-close-compare">✕</button>
+    </div>
+    <div class="cmp-view-row" id="cmp-view-row">
+      <button class="cmp-view-btn active" data-view="0" onclick="setCmpView(0)">Frente</button>
+      <button class="cmp-view-btn" data-view="1" onclick="setCmpView(1)">Costas</button>
+      <button class="cmp-view-btn" data-view="2" onclick="setCmpView(2)">Lado D</button>
+      <button class="cmp-view-btn" data-view="3" onclick="setCmpView(3)">Lado E</button>
+    </div>
+  </div>
+  <div class="cmp-img-wrap" id="cmp-img-wrap">
+    <img id="cmp-img-a" src="" alt="A" />
+    <div class="cmp-clip" id="cmp-clip">
+      <img id="cmp-img-b" src="" alt="B" />
+    </div>
+    <div class="cmp-handle" id="cmp-handle">
+      <div class="cmp-grip">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748B" stroke-width="2.5">
+          <polyline points="15 18 9 12 15 6"/><polyline points="9 18 15 12 9 6" transform="translate(6,0)"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+  <div class="cmp-bottom">
+    <table class="cmp-delta-tbl">
+      <thead>
+        <tr>
+          <th>Medida</th>
+          <th id="cmp-th-a">—</th>
+          <th id="cmp-th-b">—</th>
+          <th>Diferença</th>
+        </tr>
+      </thead>
+      <tbody id="cmp-delta-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script>
 window.API_BASE_URL = window.location.origin;
 
@@ -556,6 +1001,10 @@ async function init() {
         messagesRes.data.unread_count || 0,
       );
     }
+
+    // Carrega evolução e status de solicitação em segundo plano
+    loadEvolution();
+    loadRequestStatus();
 
     // Exibe app
     document.getElementById('loading-state').style.display  = 'none';
@@ -838,6 +1287,153 @@ async function sendStudentMessage() {
   }
 }
 
+// ── Evolução (avaliações físicas públicas) ──
+let _evoChartWeight  = null;
+let _evoChartBodyFat = null;
+let _evoAssessments  = [];   // cache para comparação
+const EVO_PHOTO_LABELS = ['Frente', 'Costas', 'Lado D', 'Lado E'];
+
+async function loadEvolution() {
+  try {
+    const res = await fetch(
+      `${window.API_BASE_URL}/api/assessments/public?access_token=${encodeURIComponent(TOKEN)}`
+    ).then(r => r.json());
+
+    if (!res.success || res.data.count === 0) {
+      document.getElementById('evolution-section').style.display = 'block';
+      document.getElementById('evolution-empty').style.display = 'block';
+      return;
+    }
+
+    const { series, summary } = res.data;
+    _evoAssessments = series; // guarda para comparação
+
+    document.getElementById('evolution-section').style.display = 'block';
+
+    if (summary) {
+      const banner = document.getElementById('evolution-summary-banner');
+      banner.textContent = summary;
+      banner.style.display = 'block';
+    }
+
+    if (series.length > 0) {
+      document.getElementById('evolution-charts').style.display = 'block';
+      const labels = series.map(s => { const [y,m,d] = s.date.split('-'); return `${d}/${m}/${y}`; });
+
+      // Gráfico de peso
+      const weights = series.map(s => s.weight);
+      if (weights.some(v => v != null)) {
+        const ctx = document.getElementById('evo-chart-weight').getContext('2d');
+        if (_evoChartWeight) _evoChartWeight.destroy();
+        _evoChartWeight = new Chart(ctx, {
+          type: 'line',
+          data: { labels, datasets: [{ label: 'Peso (kg)', data: weights,
+            borderColor: '#22C55E', backgroundColor: 'rgba(34,197,94,0.08)',
+            borderWidth: 2.5, pointBackgroundColor: '#22C55E', pointRadius: 4,
+            tension: 0.35, fill: true }] },
+          options: { maintainAspectRatio: false, plugins: { legend: { display: false } },
+            scales: { x: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+                      y: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } } } },
+        });
+      }
+
+      // Gráfico de gordura
+      const bodyfat = series.map(s => s.body_fat);
+      if (bodyfat.some(v => v != null)) {
+        document.getElementById('evo-bodyfat-card').style.display = 'block';
+        const ctx2 = document.getElementById('evo-chart-bodyfat').getContext('2d');
+        if (_evoChartBodyFat) _evoChartBodyFat.destroy();
+        _evoChartBodyFat = new Chart(ctx2, {
+          type: 'line',
+          data: { labels, datasets: [{ label: '% Gordura', data: bodyfat,
+            borderColor: '#F97316', backgroundColor: 'rgba(249,115,22,0.08)',
+            borderWidth: 2.5, pointBackgroundColor: '#F97316', pointRadius: 4,
+            tension: 0.35, fill: true }] },
+          options: { maintainAspectRatio: false, plugins: { legend: { display: false } },
+            scales: { x: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } },
+                      y: { grid: { color: '#F1F5F9' }, ticks: { color: '#94A3B8', font: { size: 11 } } } } },
+        });
+      }
+    }
+
+    // Botão Comparar (aparece com 2+ avaliações)
+    if (series.length >= 2) {
+      document.getElementById('evo-compare-btn-wrap').style.display = 'block';
+    }
+
+    // Timeline com fotos
+    const timeline = document.getElementById('evolution-timeline');
+    if (series.length) {
+      const base = `${window.API_BASE_URL}/api/uploads/files/`;
+      timeline.innerHTML = [...series].reverse().map(a => {
+        const metrics = [];
+        if (a.weight)      metrics.push(`<b>${a.weight}</b> kg`);
+        if (a.body_fat)    metrics.push(`<b>${a.body_fat}%</b> gordura`);
+        if (a.bmi)         metrics.push(`IMC <b>${a.bmi}</b>`);
+        if (a.muscle_mass) metrics.push(`Músculo <b>${a.muscle_mass}</b> kg`);
+        if (a.waist)       metrics.push(`Cintura <b>${a.waist}</b> cm`);
+        const [y,m,d] = a.date.split('-');
+        const photos = (a.photo_urls || []).filter(Boolean);
+        const photoStrip = photos.length
+          ? `<div class="evo-photo-strip">${photos.map((url, i) =>
+              `<img src="${base}${escHtml(url)}" alt="${EVO_PHOTO_LABELS[i] || 'Foto'}"
+                   onclick="openPhotoFullscreen('${base}${escHtml(url)}')" />`
+            ).join('')}</div>`
+          : '';
+        return `
+          <div style="background:#fff;border:1px solid #F1F5F9;border-radius:16px;
+                      padding:14px 16px;margin-bottom:8px;">
+            <div style="font-size:13px;font-weight:700;color:#0F172A;">${d}/${m}/${y}</div>
+            <div style="font-size:12px;color:#64748B;margin-top:3px;">
+              ${metrics.join(' &nbsp;·&nbsp; ') || 'Sem medidas registradas'}
+            </div>
+            ${a.notes ? `<div style="font-size:12px;color:#94A3B8;margin-top:4px;font-style:italic">"${escHtml(a.notes)}"</div>` : ''}
+            ${photoStrip}
+          </div>`;
+      }).join('');
+    }
+  } catch (e) { /* silencioso */ }
+}
+
+function openPhotoFullscreen(url) {
+  // Abre foto em tela cheia no lightbox nativo do iOS/Android ou em nova aba
+  const a = document.createElement('a');
+  a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+  a.click();
+}
+
+async function refreshMessages() {
+  const btn = document.getElementById('btn-refresh-msgs');
+  if (btn) {
+    btn.style.animation = 'spin 0.7s linear infinite';
+    btn.disabled = true;
+  }
+  try {
+    const res = await fetch(`${window.API_BASE_URL}/api/messages/student/preview?access_token=${encodeURIComponent(TOKEN)}`).then(r => r.json());
+    if (res.success) {
+      window._chatMessages = res.data.messages || [];
+      renderMessages(window._chatMessages, res.data.unread_count || 0);
+      renderMsgPreview();
+      // Marca como lidas
+      if (res.data.unread_count > 0) {
+        await fetch(`${window.API_BASE_URL}/api/messages/student/read`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: TOKEN }),
+        }).catch(() => {});
+      }
+    }
+  } catch (e) { /* silencioso */ }
+  finally {
+    if (btn) { btn.style.animation = ''; btn.disabled = false; }
+    // Rola para baixo
+    setTimeout(() => {
+      const list = document.getElementById('msg-preview-list');
+      if (list) list.scrollTop = list.scrollHeight;
+    }, 50);
+  }
+}
+
 function showFullError(msg) {
   document.getElementById('loading-screen').innerHTML = `
     <div style="text-align:center;padding:40px 24px;max-width:320px">
@@ -848,10 +1444,350 @@ function showFullError(msg) {
     </div>`;
 }
 
+// ── Solicitação de evolução — formulário completo ──
+
+// Estado dos slots de foto do formulário
+const EVO_SLOT_LABELS = ['Frente', 'Costas', 'Lado D', 'Lado E'];
+let _evoPhotoSlots = EVO_SLOT_LABELS.map(l => ({ label: l, url: null }));
+
+function renderEvoPhotoSlots() {
+  const grid = document.getElementById('evo-photo-grid');
+  if (!grid) return;
+  const base = `${window.API_BASE_URL}/api/uploads/files/`;
+  grid.innerHTML = _evoPhotoSlots.map((slot, i) => `
+    <div class="evo-photo-slot ${slot.url ? 'has-photo' : ''}" id="evo-slot-${i}"
+         onclick="triggerEvoPhoto(${i})">
+      ${slot.url
+        ? `<img src="${base}${escHtml(slot.url)}" alt="${slot.label}" />
+           <button class="evo-photo-remove" onclick="removeEvoPhoto(event,${i})">✕</button>`
+        : `<span class="evo-photo-slot-ico">📷</span>`}
+      <span class="evo-photo-slot-lbl">${slot.label}</span>
+    </div>
+    <input type="file" id="evo-photo-input-${i}" accept="image/jpeg,image/png,image/webp"
+           style="display:none" onchange="handleEvoPhotoSelected(${i},this)" />
+  `).join('');
+}
+
+function triggerEvoPhoto(i) {
+  document.getElementById(`evo-photo-input-${i}`)?.click();
+}
+
+function removeEvoPhoto(e, i) {
+  e.stopPropagation();
+  _evoPhotoSlots[i].url = null;
+  renderEvoPhotoSlots();
+}
+
+async function handleEvoPhotoSelected(i, input) {
+  const file = input.files?.[0];
+  if (!file) return;
+  const slot = document.getElementById(`evo-slot-${i}`);
+  slot.innerHTML = `<span class="evo-photo-slot-lbl">${_evoPhotoSlots[i].label}</span>
+    <span style="font-size:10px;color:var(--gray-400);padding:4px;text-align:center">Enviando…</span>`;
+
+  const fd = new FormData();
+  fd.append('photo', file);
+  fd.append('access_token', TOKEN);
+
+  try {
+    const res = await fetch(`${window.API_BASE_URL}/api/uploads/student-assessment-photo`, {
+      method: 'POST', body: fd,
+    }).then(r => r.json());
+    if (res.success) {
+      _evoPhotoSlots[i].url = res.data.url;
+    }
+  } catch (e) { /* silencioso — slot fica vazio */ }
+  renderEvoPhotoSlots();
+}
+
+function updateEvoBMI() {
+  const w = parseFloat(document.getElementById('evo-req-weight')?.value);
+  const h = parseFloat(document.getElementById('evo-req-height')?.value);
+  const bmiEl = document.getElementById('evo-req-bmi');
+  if (!bmiEl) return;
+  if (w > 0 && h > 0) {
+    const hm = h / 100;
+    bmiEl.value = (w / (hm * hm)).toFixed(1);
+  } else {
+    bmiEl.value = '';
+  }
+}
+
+async function loadRequestStatus() {
+  try {
+    const res = await fetch(
+      `${window.API_BASE_URL}/api/assessments/public/request?access_token=${encodeURIComponent(TOKEN)}`
+    ).then(r => r.json());
+    renderRequestStatus(res.success ? (res.data?.request || null) : null);
+  } catch (e) { renderRequestStatus(null); }
+}
+
+function renderRequestStatus(req) {
+  const idle     = document.getElementById('evo-req-idle');
+  const pending  = document.getElementById('evo-req-pending');
+  const approved = document.getElementById('evo-req-approved');
+  const rejected = document.getElementById('evo-req-rejected');
+  [idle, pending, approved, rejected].forEach(el => el && (el.style.display = 'none'));
+
+  const status = req?.status;
+  if (!status || status === 'cancelled') {
+    if (idle) idle.style.display = '';
+  } else if (status === 'pending') {
+    if (pending) {
+      pending.style.display = '';
+      const dateEl = document.getElementById('evo-req-date-label');
+      if (dateEl && req.date) {
+        const [y, m, d] = req.date.split('-');
+        dateEl.textContent = `Enviado — avaliação para ${d}/${m}/${y}`;
+      }
+    }
+  } else if (status === 'approved') {
+    if (approved) approved.style.display = '';
+  } else if (status === 'rejected') {
+    if (rejected) {
+      rejected.style.display = '';
+      const msg = document.getElementById('evo-req-rejection-msg');
+      if (msg) msg.textContent = req.rejection_reason || 'Solicitação não aprovada pelo trainer.';
+    }
+  } else {
+    if (idle) idle.style.display = '';
+  }
+}
+
+function openEvoForm() {
+  // Reseta slots de foto e campos
+  _evoPhotoSlots = EVO_SLOT_LABELS.map(l => ({ label: l, url: null }));
+  renderEvoPhotoSlots();
+  // Preenche data padrão
+  const dateInput = document.getElementById('evo-req-date');
+  if (dateInput && !dateInput.value) dateInput.value = new Date().toLocaleDateString('sv-SE');
+  document.getElementById('evo-req-status').textContent = '';
+  document.getElementById('evo-form-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEvoForm() {
+  document.getElementById('evo-form-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+  document.getElementById('evo-req-status').textContent = '';
+  loadRequestStatus();
+}
+
+function _getFloatVal(id) {
+  const v = document.getElementById(id)?.value;
+  return v ? parseFloat(v) : undefined;
+}
+
+async function submitEvoRequest() {
+  const btn = document.getElementById('btn-submit-evo-req');
+  const statusEl = document.getElementById('evo-req-status');
+  const date = (document.getElementById('evo-req-date')?.value || '').trim();
+  if (!date) {
+    statusEl.textContent = 'A data é obrigatória.';
+    statusEl.style.color = '#EF4444';
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+  statusEl.textContent = '';
+
+  try {
+    const body = { access_token: TOKEN, date };
+    const fields = {
+      weight: 'evo-req-weight', height: 'evo-req-height',
+      body_fat: 'evo-req-bodyfat', muscle_mass: 'evo-req-muscle',
+      chest: 'evo-req-chest', waist: 'evo-req-waist', hip: 'evo-req-hip',
+      abdomen: 'evo-req-abdomen', right_arm: 'evo-req-right-arm',
+      left_arm: 'evo-req-left-arm', right_thigh: 'evo-req-right-thigh',
+      left_thigh: 'evo-req-left-thigh', right_calf: 'evo-req-right-calf',
+      left_calf: 'evo-req-left-calf',
+    };
+    for (const [key, id] of Object.entries(fields)) {
+      const v = _getFloatVal(id);
+      if (v !== undefined && !isNaN(v)) body[key] = v;
+    }
+    const notes = document.getElementById('evo-req-notes')?.value.trim();
+    if (notes) body.notes = notes;
+
+    const photoUrls = _evoPhotoSlots.map(s => s.url || null);
+    if (photoUrls.some(Boolean)) body.photo_urls = photoUrls;
+
+    const res = await fetch(`${window.API_BASE_URL}/api/assessments/public/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(r => r.json());
+
+    if (res.success) {
+      closeEvoForm();
+      renderRequestStatus(res.data?.request || { status: 'pending', date });
+    } else {
+      statusEl.textContent = res.message || 'Erro ao enviar solicitação.';
+      statusEl.style.color = '#EF4444';
+    }
+  } catch (e) {
+    statusEl.textContent = 'Erro de conexão.';
+    statusEl.style.color = '#EF4444';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar para aprovação';
+  }
+}
+
+async function cancelEvoRequest() {
+  const btn = document.getElementById('btn-cancel-evo-req');
+  btn.disabled = true;
+  btn.textContent = 'Cancelando…';
+  try {
+    const res = await fetch(
+      `${window.API_BASE_URL}/api/assessments/public/request?access_token=${encodeURIComponent(TOKEN)}`,
+      { method: 'DELETE' }
+    ).then(r => r.json());
+    if (res.success) renderRequestStatus(null);
+  } catch (e) { /* silencioso */ }
+  finally {
+    btn.disabled = false;
+    btn.textContent = 'Cancelar solicitação';
+  }
+}
+
+// ── Comparação de avaliações ──
+
+let _cmpViewIdx = 0;
+let _cmpSliderInit = false;
+
+function openCompareModal() {
+  if (_evoAssessments.length < 2) return;
+  const selA = document.getElementById('cmp-sel-a');
+  const selB = document.getElementById('cmp-sel-b');
+  const opts = _evoAssessments.map((a, i) => {
+    const [y, m, d] = a.date.split('-');
+    return `<option value="${i}">${d}/${m}/${y}</option>`;
+  }).join('');
+  selA.innerHTML = opts;
+  selB.innerHTML = opts;
+  // Padrão: mais antiga vs mais recente
+  selA.value = 0;
+  selB.value = _evoAssessments.length - 1;
+  setCmpView(0);
+  document.getElementById('evo-compare-overlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  renderCompare();
+  if (!_cmpSliderInit) { initCmpSlider(); _cmpSliderInit = true; }
+}
+
+function closeCompareModal() {
+  document.getElementById('evo-compare-overlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function setCmpView(idx) {
+  _cmpViewIdx = idx;
+  document.querySelectorAll('.cmp-view-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.view) === idx);
+  });
+  renderCompare();
+}
+
+function renderCompare() {
+  const idxA  = parseInt(document.getElementById('cmp-sel-a').value);
+  const idxB  = parseInt(document.getElementById('cmp-sel-b').value);
+  const asmA  = _evoAssessments[idxA];
+  const asmB  = _evoAssessments[idxB];
+  if (!asmA || !asmB) return;
+
+  const base = `${window.API_BASE_URL}/api/uploads/files/`;
+  const placeholder = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='400'><rect fill='%231E293B' width='300' height='400'/><text x='50%25' y='50%25' fill='%2364748B' font-size='13' text-anchor='middle' dominant-baseline='middle'>Sem foto</text></svg>`;
+
+  const urlA = (asmA.photo_urls || [])[_cmpViewIdx];
+  const urlB = (asmB.photo_urls || [])[_cmpViewIdx];
+  document.getElementById('cmp-img-a').src = urlB ? base + urlB : placeholder;
+  document.getElementById('cmp-img-b').src = urlA ? base + urlA : placeholder;
+
+  const fmt = iso => { const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
+  document.getElementById('cmp-th-a').textContent = fmt(asmA.date);
+  document.getElementById('cmp-th-b').textContent = fmt(asmB.date);
+
+  // Reseta handle
+  const handle = document.getElementById('cmp-handle');
+  const clip   = document.getElementById('cmp-clip');
+  handle.style.left = '50%';
+  clip.style.clipPath = 'inset(0 50% 0 0)';
+
+  // Tabela de deltas
+  const DELTA_ROWS = [
+    { label: 'Peso (kg)',          key: 'weight',      invert: true  },
+    { label: '% Gordura',          key: 'body_fat',    invert: true  },
+    { label: 'Massa muscular (kg)',key: 'muscle_mass', invert: false },
+    { label: 'IMC',                key: 'bmi',         invert: true  },
+    { label: 'Cintura (cm)',        key: 'waist',       invert: true  },
+    { label: 'Quadril (cm)',        key: 'hip',         invert: true  },
+    { label: 'Abdômen (cm)',        key: 'abdomen',     invert: true  },
+    { label: 'Braço D (cm)',        key: 'right_arm',   invert: false },
+    { label: 'Coxa D (cm)',         key: 'right_thigh', invert: false },
+  ];
+  const tbody = document.getElementById('cmp-delta-body');
+  tbody.innerHTML = DELTA_ROWS.map(r => {
+    const va = asmA[r.key], vb = asmB[r.key];
+    if (va == null && vb == null) return '';
+    const diff = (va != null && vb != null) ? +(vb - va).toFixed(1) : null;
+    let diffHtml = '—';
+    if (diff !== null) {
+      const good = r.invert ? diff < 0 : diff > 0;
+      const cls  = diff === 0 ? '' : (good ? 'cmp-up' : 'cmp-down');
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '';
+      diffHtml = `<span class="${cls}">${arrow} ${Math.abs(diff)}</span>`;
+    }
+    return `<tr><td>${r.label}</td><td>${va ?? '—'}</td><td>${vb ?? '—'}</td><td>${diffHtml}</td></tr>`;
+  }).join('');
+}
+
+function initCmpSlider() {
+  const wrap   = document.getElementById('cmp-img-wrap');
+  const handle = document.getElementById('cmp-handle');
+  const clip   = document.getElementById('cmp-clip');
+  let drag = false;
+
+  function setPos(x) {
+    const rect = wrap.getBoundingClientRect();
+    const pct  = Math.max(0, Math.min(100, ((x - rect.left) / rect.width) * 100));
+    handle.style.left = pct + '%';
+    clip.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+  }
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault(); // evita seleção de texto no drag
+    drag = true;
+    document.getElementById('evo-compare-overlay').style.userSelect = 'none';
+  });
+  document.addEventListener('mousemove', e => { if (drag) setPos(e.clientX); });
+  document.addEventListener('mouseup', () => {
+    drag = false;
+    document.getElementById('evo-compare-overlay').style.userSelect = '';
+  });
+  handle.addEventListener('touchstart',  e => { drag = true; e.preventDefault(); }, { passive: false });
+  document.addEventListener('touchmove', e => { if (drag) setPos(e.touches[0].clientX); }, { passive: true });
+  document.addEventListener('touchend',  () => drag = false);
+}
+
 // ── Event listeners ──
 document.getElementById('fab-msg').addEventListener('click', openMsgModal);
 document.getElementById('btn-close-msg-modal').addEventListener('click', closeMsgModal);
+document.getElementById('btn-refresh-msgs').addEventListener('click', refreshMessages);
 document.getElementById('btn-send-student-msg').addEventListener('click', sendStudentMessage);
+
+// Evolução — botões de solicitação
+document.getElementById('btn-open-evo-form')?.addEventListener('click', openEvoForm);
+document.getElementById('btn-open-evo-form-2')?.addEventListener('click', openEvoForm);
+document.getElementById('btn-close-evo-form')?.addEventListener('click', closeEvoForm);
+document.getElementById('btn-submit-evo-req')?.addEventListener('click', submitEvoRequest);
+document.getElementById('btn-cancel-evo-req')?.addEventListener('click', cancelEvoRequest);
+document.getElementById('btn-compare-evo')?.addEventListener('click', openCompareModal);
+document.getElementById('btn-close-compare')?.addEventListener('click', closeCompareModal);
+
+// Fecha form overlay ao clicar no fundo
+document.getElementById('evo-form-overlay')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('evo-form-overlay')) closeEvoForm();
+});
 
 // Fecha modal ao clicar no overlay
 document.getElementById('msg-modal-overlay').addEventListener('click', (e) => {

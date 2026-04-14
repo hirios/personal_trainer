@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Meu Perfil — FitFlow Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+  <script>window.API_BASE_URL = window.location.origin;</script>
+  <script src="/frontend/js/api.js"></script>
+  <script src="/frontend/js/auth.js"></script>
+  <script src="/frontend/js/components/toast.js"></script>
+  <script src="/frontend/js/components/layout.js"></script>
+
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #F8FAFC; }
+    h1,h2,h3,h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    .section-card {
+      background: #fff;
+      border: 1px solid #F1F5F9;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+    }
+
+    .field-label {
+      display: block;
+      font-size: 11px; font-weight: 600;
+      color: #94A3B8; text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 6px;
+    }
+
+    .field-input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #E2E8F0;
+      border-radius: 12px;
+      font-size: 14px; color: #0F172A;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+    .field-input:focus {
+      border-color: #22C55E;
+      box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
+    }
+
+    textarea.field-input { resize: vertical; min-height: 90px; }
+
+    .btn-save {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px;
+      background: #22C55E; color: #fff;
+      border: none; border-radius: 12px;
+      font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: background 0.15s;
+      white-space: nowrap;
+      align-self: flex-start;
+      height: auto;
+    }
+    .btn-save:hover:not(:disabled) { background: #15803D; }
+    .btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
+    /* Garante que os SVGs gerados pelo Lucide dentro dos botões
+       fiquem no tamanho correto e herdem a cor branca do botão */
+    .btn-save svg {
+      width: 16px; height: 16px; flex-shrink: 0;
+      color: #fff; stroke: currentColor;
+    }
+
+    /* Avatar upload */
+    .avatar-wrapper {
+      position: relative; width: 80px; height: 80px;
+      border-radius: 50%; overflow: hidden;
+      border: 3px solid #E2E8F0; flex-shrink: 0;
+    }
+    .avatar-wrapper img { width: 100%; height: 100%; object-fit: cover; }
+    .avatar-placeholder {
+      width: 100%; height: 100%;
+      background: linear-gradient(135deg,#22C55E,#15803D);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 28px; font-weight: 700; color: #fff;
+    }
+
+    /* Tag de especialização */
+    .spec-tag {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 4px 10px; background: #F0FDF4;
+      border: 1px solid #BBF7D0; border-radius: 100px;
+      font-size: 12px; font-weight: 600; color: #166534;
+    }
+    .spec-tag button { color: #86EFAC; cursor: pointer; background: none; border: none; padding: 0; line-height: 1; }
+    .spec-tag button:hover { color: #DC2626; }
+
+    /* Destaque da seção PIX */
+    .pix-highlight {
+      border: 1.5px solid #BBF7D0;
+      background: linear-gradient(135deg, #F0FDF4, #fff);
+    }
+  </style>
+</head>
+<body class="min-h-screen">
+
+<div id="main-content" class="min-h-screen">
+  <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24 lg:pb-8">
+
+    <!-- Cabeçalho -->
+    <div class="mb-6">
+      <h1 class="text-2xl font-bold text-gray-900">Meu Perfil</h1>
+      <p class="text-sm text-gray-400 mt-0.5">Gerencie suas informações profissionais e configurações de cobrança</p>
+    </div>
+
+    <!-- Avatar + nome -->
+    <div class="section-card mb-4">
+      <div class="flex items-center gap-5">
+        <div class="avatar-wrapper" id="avatar-wrapper">
+          <div class="avatar-placeholder" id="avatar-initials"></div>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-bold text-gray-900 text-lg truncate" id="header-name">—</p>
+          <p class="text-sm text-gray-400 truncate" id="header-email">—</p>
+          <span class="inline-flex items-center gap-1 mt-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-100" id="header-plan">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dados pessoais -->
+    <div class="section-card mb-4">
+      <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+        <i data-lucide="user" class="w-4 h-4 text-green-500"></i> Dados pessoais
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="field-label">Nome completo</label>
+          <input type="text" id="field-name" class="field-input" placeholder="Seu nome" />
+        </div>
+        <div>
+          <label class="field-label">Telefone / WhatsApp</label>
+          <input type="tel" id="field-phone" class="field-input" placeholder="(11) 99999-9999" />
+        </div>
+        <div>
+          <label class="field-label">CREF</label>
+          <input type="text" id="field-cref" class="field-input" placeholder="000000-G/SP" />
+        </div>
+        <div class="sm:col-span-2">
+          <label class="field-label">Bio profissional</label>
+          <textarea id="field-bio" class="field-input" placeholder="Apresentação que seus alunos verão…"></textarea>
+        </div>
+      </div>
+      <div class="mt-4 flex justify-end items-center">
+        <button class="btn-save" id="btn-save-personal" onclick="savePersonal()">
+          <i data-lucide="save" class="w-4 h-4"></i> Salvar dados
+        </button>
+      </div>
+    </div>
+
+    <!-- Especializações -->
+    <div class="section-card mb-4">
+      <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+        <i data-lucide="dumbbell" class="w-4 h-4 text-blue-500"></i> Especializações
+      </h3>
+      <div id="specs-tags" class="flex flex-wrap gap-2 mb-3"></div>
+      <div class="flex gap-2">
+        <input type="text" id="spec-input" class="field-input flex-1"
+          placeholder="Ex: Musculação, Funcional, Corrida…"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addSpec()}" />
+        <button onclick="addSpec()"
+          class="px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-sm font-semibold transition-colors border border-blue-100">
+          + Adicionar
+        </button>
+      </div>
+      <div class="mt-4 flex justify-end items-center">
+        <button class="btn-save" id="btn-save-specs" onclick="saveSpecs()">
+          <i data-lucide="save" class="w-4 h-4"></i> Salvar especializações
+        </button>
+      </div>
+    </div>
+
+    <!-- Configurações de cobrança (PIX) -->
+    <div class="section-card mb-4 pix-highlight">
+      <h3 class="text-sm font-bold text-gray-700 mb-1 flex items-center gap-2">
+        <i data-lucide="qr-code" class="w-4 h-4 text-green-600"></i> Chave PIX para cobranças
+      </h3>
+      <p class="text-xs text-gray-400 mb-4">
+        Usada pelo FitFlow Pro para enviar o link de pagamento aos alunos via WhatsApp no dia do vencimento.
+        Pode ser CPF, CNPJ, e-mail, telefone ou chave aleatória.
+      </p>
+      <div>
+        <label class="field-label">Chave PIX</label>
+        <input type="text" id="field-pix-key" class="field-input"
+          placeholder="CPF, CNPJ, e-mail, telefone ou chave aleatória" />
+      </div>
+      <div class="mt-4 flex justify-end items-center">
+        <button class="btn-save" id="btn-save-pix" onclick="savePixKey()">
+          <i data-lucide="save" class="w-4 h-4"></i> Salvar chave PIX
+        </button>
+      </div>
+    </div>
+
+    <!-- Configurações de atendimento -->
+    <div class="section-card mb-4">
+      <h3 class="text-sm font-bold text-gray-700 mb-4 flex items-center gap-2">
+        <i data-lucide="settings" class="w-4 h-4 text-gray-400"></i> Atendimento
+      </h3>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="field-label">Duração padrão da sessão</label>
+          <select id="field-session-duration" class="field-input">
+            <option value="30">30 minutos</option>
+            <option value="45">45 minutos</option>
+            <option value="60">1 hora</option>
+            <option value="90">1h 30min</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Política de cancelamento</label>
+          <select id="field-cancel-policy" class="field-input">
+            <option value="0">Sem política</option>
+            <option value="2">2 horas de antecedência</option>
+            <option value="4">4 horas de antecedência</option>
+            <option value="12">12 horas de antecedência</option>
+            <option value="24">24 horas de antecedência</option>
+            <option value="48">48 horas de antecedência</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-4 flex justify-end items-center">
+        <button class="btn-save" id="btn-save-settings" onclick="saveSettings()">
+          <i data-lucide="save" class="w-4 h-4"></i> Salvar configurações
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /main-content -->
+
+<script>
+  // ----------------------------------------------------------------
+  // Estado
+  // ----------------------------------------------------------------
+  let trainerData = null;
+  let specializations = [];
+
+  // ----------------------------------------------------------------
+  // Carregar perfil
+  // ----------------------------------------------------------------
+  async function loadProfile() {
+    const res = await Api.get('/api/trainer/profile');
+    if (!res.success) { Toast.error('Erro ao carregar perfil.'); return; }
+
+    trainerData = res.data.trainer;
+    renderProfile(trainerData);
+  }
+
+  function renderProfile(t) {
+    // Header
+    const initials = (t.name || '?').split(' ').slice(0,2).map(w => w[0]).join('').toUpperCase();
+    document.getElementById('avatar-initials').textContent = initials;
+    document.getElementById('header-name').textContent    = t.name || '—';
+    document.getElementById('header-email').textContent   = t.email || '—';
+    document.getElementById('header-plan').textContent    = `Plano ${t.plan || 'starter'}`;
+
+    if (t.avatar_url) {
+      const wrapper = document.getElementById('avatar-wrapper');
+      wrapper.innerHTML = `<img src="${t.avatar_url}" alt="Avatar" />`;
+    }
+
+    // Campos de texto
+    document.getElementById('field-name').value             = t.name             || '';
+    document.getElementById('field-phone').value            = t.phone            || '';
+    document.getElementById('field-cref').value             = t.cref             || '';
+    document.getElementById('field-bio').value              = t.bio              || '';
+    document.getElementById('field-pix-key').value         = t.pix_key          || '';
+    document.getElementById('field-session-duration').value = String(t.session_duration || 60);
+    document.getElementById('field-cancel-policy').value    = String(t.cancellation_hours_policy ?? 24);
+
+    // Especializações
+    specializations = Array.isArray(t.specializations) ? [...t.specializations] : [];
+    renderSpecs();
+  }
+
+  // ----------------------------------------------------------------
+  // Especializações
+  // ----------------------------------------------------------------
+  function renderSpecs() {
+    const container = document.getElementById('specs-tags');
+    if (specializations.length === 0) {
+      container.innerHTML = '<span class="text-xs text-gray-400">Nenhuma especialização cadastrada</span>';
+      return;
+    }
+    container.innerHTML = specializations.map((s, i) => `
+      <span class="spec-tag">
+        ${escHtml(s)}
+        <button onclick="removeSpec(${i})" title="Remover">×</button>
+      </span>`).join('');
+  }
+
+  function addSpec() {
+    const input = document.getElementById('spec-input');
+    const val   = input.value.trim();
+    if (!val) return;
+    if (specializations.map(s => s.toLowerCase()).includes(val.toLowerCase())) {
+      Toast.warning('Especialização já adicionada.');
+      return;
+    }
+    specializations.push(val);
+    input.value = '';
+    renderSpecs();
+  }
+
+  function removeSpec(idx) {
+    specializations.splice(idx, 1);
+    renderSpecs();
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ----------------------------------------------------------------
+  // Salvar dados pessoais
+  // ----------------------------------------------------------------
+  async function savePersonal() {
+    const btn = document.getElementById('btn-save-personal');
+    btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvando…';
+
+    const res = await Api.patch('/api/trainer/profile', {
+      name:  document.getElementById('field-name').value.trim(),
+      phone: document.getElementById('field-phone').value.trim() || null,
+      cref:  document.getElementById('field-cref').value.trim()  || null,
+      bio:   document.getElementById('field-bio').value.trim()   || null,
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Salvar dados';
+    lucide.createIcons();
+
+    if (res.success) {
+      trainerData = res.data.trainer;
+      document.getElementById('header-name').textContent = trainerData.name;
+      Toast.success('Dados pessoais atualizados!');
+    } else {
+      Toast.error(res.message || 'Erro ao salvar.');
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Salvar especializações
+  // ----------------------------------------------------------------
+  async function saveSpecs() {
+    const btn = document.getElementById('btn-save-specs');
+    btn.disabled = true;
+
+    const res = await Api.patch('/api/trainer/profile', { specializations });
+
+    btn.disabled = false;
+    if (res.success) {
+      Toast.success('Especializações salvas!');
+    } else {
+      Toast.error(res.message || 'Erro ao salvar.');
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Salvar chave PIX
+  // ----------------------------------------------------------------
+  async function savePixKey() {
+    const btn    = document.getElementById('btn-save-pix');
+    const pixKey = document.getElementById('field-pix-key').value.trim();
+
+    btn.disabled = true; btn.innerHTML = '<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Salvando…';
+
+    const res = await Api.patch('/api/trainer/profile', { pix_key: pixKey || null });
+
+    btn.disabled = false;
+    btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Salvar chave PIX';
+    lucide.createIcons();
+
+    if (res.success) {
+      Toast.success(pixKey ? 'Chave PIX salva!' : 'Chave PIX removida.');
+    } else {
+      Toast.error(res.message || 'Erro ao salvar.');
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Salvar configurações de atendimento
+  // ----------------------------------------------------------------
+  async function saveSettings() {
+    const btn = document.getElementById('btn-save-settings');
+    btn.disabled = true;
+
+    const res = await Api.patch('/api/trainer/profile', {
+      session_duration:            parseInt(document.getElementById('field-session-duration').value),
+      cancellation_hours_policy:   parseInt(document.getElementById('field-cancel-policy').value),
+    });
+
+    btn.disabled = false;
+    if (res.success) {
+      Toast.success('Configurações salvas!');
+    } else {
+      Toast.error(res.message || 'Erro ao salvar.');
+    }
+  }
+
+  // ----------------------------------------------------------------
+  // Init
+  // ----------------------------------------------------------------
+  initLayout('Meu Perfil', [{ label: 'Perfil' }]);
+  loadProfile().then(() => lucide.createIcons());
+</script>
+</body>
+</html>

@@ -6,7 +6,7 @@ Autenticação dupla:
   - Trainer: JWT via @trainer_required
   - Aluno: access_token no body ou query param (rotas públicas /student/*)
 """
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from sqlalchemy import func
@@ -171,6 +171,20 @@ def student_send():
     trainer = db.session.get(Trainer, student.trainer_id)
     if not trainer or not trainer.is_active:
         return _error("Personal trainer não encontrado.", 404)
+
+    # Rate limiting: máx 10 mensagens em 5 minutos por aluno
+    _window = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(minutes=5)
+    _recent = Message.query.filter(
+        Message.student_id == student.id,
+        Message.sender_role == "student",
+        Message.created_at >= _window,
+    ).count()
+    if _recent >= 10:
+        return _error(
+            "Você enviou muitas mensagens em pouco tempo. "
+            "Aguarde alguns minutos antes de enviar novamente.",
+            429,
+        )
 
     msg = Message(
         trainer_id=trainer.id,

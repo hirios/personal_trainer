@@ -388,13 +388,23 @@ def update_student(student_id, **kwargs):
         "internal_notes", "avatar_url",
     }
 
+    VALID_STATUSES = {"active", "inactive", "pending_payment"}
+
     for field in updatable_fields:
         if field in data:
             value = data[field]
             # Normaliza strings vazias para None
             if isinstance(value, str) and value.strip() == "":
                 value = None
+            # Valida status
+            if field == "status" and value not in VALID_STATUSES:
+                return _error(
+                    f"Status inválido. Use: {sorted(VALID_STATUSES)}.", 422
+                )
             setattr(student, field, value)
+            # Sincroniza is_active com status para bloquear acesso público
+            if field == "status":
+                student.is_active = (value != "inactive")
 
     # Data de nascimento precisa de parse
     if "birth_date" in data:

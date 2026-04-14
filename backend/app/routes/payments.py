@@ -72,8 +72,9 @@ def dashboard(**kwargs):
     """
     trainer = kwargs["current_trainer"]
 
-    # Atualiza overdues antes de calcular
-    from app.services.payment_service import update_overdue_payments
+    # Garante cobranças do mês atual e atualiza overdues antes de calcular métricas
+    from app.services.payment_service import generate_monthly_charges, update_overdue_payments
+    generate_monthly_charges(trainer.id)
     update_overdue_payments(trainer.id)
 
     today = date.today()
@@ -399,6 +400,96 @@ def preview_bulk(**kwargs):
         "pending_count": pending_count,
         "total_students": len(students),
     })
+
+
+# ------------------------------------------------------------------ #
+#  POST /api/payments/notify                                          #
+# ------------------------------------------------------------------ #
+
+@payments_bp.route("/notify", methods=["POST"])
+@jwt_required()
+@trainer_required
+def notify_unpaid(**kwargs):
+    """
+    Envia mensagem de cobrança via WhatsApp (Evolution API) para todos os alunos
+    com pagamento pendente ou inadimplente no mês informado.
+
+    Não verifica se a mensagem já foi enviada antes — sempre reenvia.
+    Requer que o trainer tenha pix_key cadastrada.
+
+    Body (opcional): { "month": "YYYY-MM" }
+    """
+    from app.services.whatsapp_service import send_payment_reminder
+
+    trainer   = kwargs["current_trainer"]
+    data      = request.get_json(silent=True) or {}
+    month_str = data.get("month")
+
+    if not trainer.pix_key:
+        return _error(
+            "Chave PIX não cadastrada. Configure-a na página de Perfil antes de enviar cobranças.",
+            422,
+        )
+
+    today = date.today()
+    if month_str:
+        m_start, _ = _month_bounds(month_str)
+        target_month = m_start or today.replace(day=1)
+    else:
+        target_month = today.replace(day=1)
+
+    if target_month.month == 12:
+        next_month = date(target_month.year + 1, 1, 1)
+    else:
+        next_month = date(target_month.year, target_month.month + 1, 1)
+
+    # Apenas inadimplentes (overdue) de alunos ativos e não cancelados
+    # O scheduler cuida do lembrete no dia do vencimento (status=pending)
+    pagamentos = (
+        Payment.query
+        .join(Student, Payment.student_id == Student.id)
+        .filter(
+            Payment.trainer_id == trainer.id,
+            Payment.status     == "overdue",
+            Student.is_active  == True,
+            Student.status     == "active",
+        )
+        .all()
+    )
+
+    enviados  = 0
+    ignorados = 0
+    erros     = []
+
+    for pag in pagamentos:
+        aluno = db.session.get(Student, pag.student_id)
+        if not aluno or not aluno.phone:
+            ignorados += 1
+            continue
+
+        ok, err = send_payment_reminder(
+            student_name  = aluno.name,
+            student_phone = aluno.phone,
+            trainer_name  = trainer.name,
+            amount        = float(pag.amount),
+            due_date      = pag.due_date,
+            pix_key       = trainer.pix_key,
+        )
+
+        if ok:
+            enviados += 1
+        else:
+            ignorados += 1
+            erros.append({"aluno": aluno.name, "erro": err})
+
+    msg = f"{enviados} mensagem(ns) enviada(s)."
+    if ignorados:
+        msg += f" {ignorados} ignorada(s) (sem telefone ou falha na API)."
+
+    return _success(
+        data={"enviados": enviados, "ignorados": ignorados, "erros": erros},
+        message=msg,
+    )
 
 
 # ------------------------------------------------------------------ #

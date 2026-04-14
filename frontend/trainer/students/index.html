@@ -220,8 +220,14 @@
         : `<div class="avatar-initials" style="background:${avatarColor}">${initials}</div>`;
 
       return `
-        <div class="student-card" onclick="goToDetail('${student.id}')" role="button" tabindex="0"
+        <div class="student-card" style="position:relative" data-student-id="${student.id}"
+             onclick="goToDetail('${student.id}')" role="button" tabindex="0"
              onkeydown="if(event.key==='Enter') goToDetail('${student.id}')">
+          <!-- Badge de mensagens não lidas -->
+          <div id="msg-badge-${student.id}" style="display:none;position:absolute;top:-10px;right:16px;
+            background:#F97316;color:#fff;font-size:11px;font-weight:700;border-radius:999px;
+            padding:2px 8px;min-width:20px;text-align:center;pointer-events:none;
+            box-shadow:0 2px 6px rgba(249,115,22,0.45);">0</div>
           <div class="flex items-start gap-3 mb-3">
             <div class="avatar-ring">${avatarHTML}</div>
             <div class="flex-1 min-w-0">
@@ -348,6 +354,8 @@
 
       lucide.createIcons();
       renderPagination(pagination);
+      // Carrega badges de mensagens não lidas em segundo plano
+      if (students.length > 0) loadUnreadBadges();
     }
 
     function renderPagination(p) {
@@ -375,6 +383,20 @@
       }
       html += btn('›', p.page + 1, !p.has_next, false);
       el.innerHTML = html;
+    }
+
+    async function loadUnreadBadges() {
+      try {
+        const res = await Api.get('/api/messages/unread-count');
+        if (!res.success) return;
+        res.data.unread.forEach(({ student_id, count }) => {
+          const badge = document.getElementById(`msg-badge-${student_id}`);
+          if (badge && count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.style.display = '';
+          }
+        });
+      } catch (_) {}
     }
 
     function goToDetail(id) {
